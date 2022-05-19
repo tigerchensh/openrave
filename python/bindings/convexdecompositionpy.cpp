@@ -15,11 +15,12 @@
 #define PY_ARRAY_UNIQUE_SYMBOL PyArrayHandle
 #include <boost/python.hpp>
 #include <boost/python/exception_translator.hpp>
-#include <boost/python/stl_iterator.hpp>
+#include <boost/python/iterator.hpp>
 #include <pyconfig.h>
 #include <numpy/arrayobject.h>
 
 #include <exception>
+#include <boost/bind/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 #include <boost/assert.hpp>
@@ -54,6 +55,8 @@ using openravepy::int_from_number;
 using openravepy::float_from_number;
 using openravepy::OpenRAVEBoostPythonExceptionTranslator;
 #endif // USE_PYBIND11_PYTHON_BINDINGS
+
+using namespace boost::placeholders;
 
 struct OPENRAVE_API cdpy_exception : std::exception
 {
