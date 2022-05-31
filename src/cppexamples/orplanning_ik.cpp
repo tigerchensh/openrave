@@ -9,7 +9,6 @@
 #include <openrave-core.h>
 #include <vector>
 #include <sstream>
-#include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
 #include "orexample.h"
@@ -57,7 +56,7 @@ public:
 
         while(IsOk()) {
             {
-                EnvironmentMutex::scoped_lock lock(penv->GetMutex()); // lock environment
+                EnvironmentLock lock(penv->GetMutex()); // lock environment
 
                 // find a new manipulator position and feed that into the planner. If valid, robot will move to it safely.
                 Transform t = pmanip->GetTransform();

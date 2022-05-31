@@ -37,7 +37,6 @@
 #endif
 
 #include <boost/utility.hpp>
-#include <boost/thread/once.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind/bind.hpp>
@@ -686,7 +685,7 @@ bool ParseXMLFile(BaseXMLReaderPtr preader, const string& filename)
     if( filedata.size() == 0 ) {
         return false;
     }
-    EnvironmentMutex::scoped_lock lock(*GetXMLMutex());
+    EnvironmentLock lock(*GetXMLMutex());
 
 #ifdef HAVE_BOOST_FILESYSTEM
     SetParseDirectoryScope scope(boost::filesystem::path(filedata).parent_path().string());
@@ -721,7 +720,7 @@ bool ParseXMLData(BaseXMLReaderPtr preader, const std::string& pdata)
     if( pdata.size() == 0 ) {
         return false;
     }
-    EnvironmentMutex::scoped_lock lock(*GetXMLMutex());
+    EnvironmentLock lock(*GetXMLMutex());
     return raveXmlSAXUserParseMemory(GetSAXHandler(), preader, pdata.c_str(), pdata.size())==0;
 }
 

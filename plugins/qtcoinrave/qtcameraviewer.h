@@ -125,7 +125,7 @@ private:
 
     virtual void _CreateImageWindow()
     {
-        boost::mutex::scoped_lock lock(_mutex);
+        boost::unique_lock<boost::mutex> lock(_mutex);
         if( !_imagewindow ) {
             _imagewindow.reset(new QtImageWindow(_psensor));
             _imagewindow->show();

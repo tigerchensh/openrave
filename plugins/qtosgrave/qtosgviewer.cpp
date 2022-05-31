@@ -40,7 +40,7 @@ public:
     virtual ~ItemSelectionCallbackData() {
         boost::shared_ptr<QtOSGViewer> pviewer = _pweakviewer.lock();
         if( !!pviewer ) {
-            boost::mutex::scoped_lock lock(pviewer->_mutexCallbacks);
+            boost::unique_lock<boost::mutex> lock(pviewer->_mutexCallbacks);
             pviewer->_listRegisteredItemSelectionCallbacks.erase(_iterator);
         }
     }
@@ -60,7 +60,7 @@ public:
     virtual ~ViewerThreadCallbackData() {
         boost::shared_ptr<QtOSGViewer> pviewer = _pweakviewer.lock();
         if( !!pviewer ) {
-            boost::mutex::scoped_lock lock(pviewer->_mutexCallbacks);
+            boost::unique_lock<boost::mutex> lock(pviewer->_mutexCallbacks);
             pviewer->_listRegisteredViewerThreadCallbacks.erase(_iterator);
         }
     }
@@ -346,13 +346,13 @@ void QtOSGViewer::customEvent(QEvent * e)
 bool QtOSGViewer::_ForceUpdatePublishedBodies()
 {
     {
-        boost::mutex::scoped_lock lockupdating(_mutexUpdating);
+        boost::unique_lock<boost::mutex> lockupdating(_mutexUpdating);
         if( !_bUpdateEnvironment )
             return false;
     }
 
-    boost::mutex::scoped_lock lock(_mutexUpdateModels);
-    EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+    boost::unique_lock<boost::mutex> lock(_mutexUpdateModels);
+    EnvironmentLock lockenv(GetEnv()->GetMutex());
     GetEnv()->UpdatePublishedBodies();
 
     _bModelsUpdated = false;
@@ -477,7 +477,7 @@ void QtOSGViewer::_UpdateViewerCallback()
         {
             std::list<UserDataWeakPtr> listRegisteredViewerThreadCallbacks;
             {
-                boost::mutex::scoped_lock lock(_mutexCallbacks);
+                boost::unique_lock<boost::mutex> lock(_mutexCallbacks);
                 listRegisteredViewerThreadCallbacks = _listRegisteredViewerThreadCallbacks;
             }
             FOREACH(it,listRegisteredViewerThreadCallbacks) {
@@ -518,7 +518,7 @@ void QtOSGViewer::_Reset()
 
 
     {
-        boost::mutex::scoped_lock lock(_mutexItems);
+        boost::unique_lock<boost::mutex> lock(_mutexItems);
         FOREACH(it,_listRemoveItems) {
             delete *it;
         }
@@ -572,7 +572,7 @@ void QtOSGViewer::LoadEnvironment()
 
     _Reset();
     try {
-        EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+        EnvironmentLock lockenv(GetEnv()->GetMutex());
         GetEnv()->Reset();
 
         GetEnv()->Load(s.toLatin1().data());
@@ -602,7 +602,7 @@ void QtOSGViewer::ImportEnvironment()
         return;
     }
     try {
-        EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+        EnvironmentLock lockenv(GetEnv()->GetMutex());
         GetEnv()->Load(s.toLatin1().data());
 
         //  Refresh the screen.
@@ -620,7 +620,7 @@ void QtOSGViewer::SaveEnvironment()
         return;
     }
     try {
-        EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+        EnvironmentLock lockenv(GetEnv()->GetMutex());
         GetEnv()->Save(s.toLatin1().data());
     }
     catch(const std::exception& ex) {
@@ -1060,7 +1060,7 @@ void QtOSGViewer::_FillObjectTree(QTreeWidget *treeWidget)
 
 void QtOSGViewer::_UpdateViewport()
 {
-    boost::mutex::scoped_lock lock(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lock(_mutexGUIFunctions);
 
     int width = centralWidget()->size().width();
     int height = centralWidget()->size().height();
@@ -1146,7 +1146,7 @@ bool QtOSGViewer::_TrackLinkCommand(ostream& sout, istream& sinput)
     if( focalDistance > 0 ) {
         _SetCameraDistanceToFocus(focalDistance);
     }
-    EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+    EnvironmentLock lockenv(GetEnv()->GetMutex());
     KinBodyPtr pbody = GetEnv()->GetKinBody(bodyname);
     if( !pbody ) {
         // restore navigation manipulator
@@ -1182,7 +1182,7 @@ bool QtOSGViewer::_TrackManipulatorCommand(ostream& sout, istream& sinput)
         _SetCameraDistanceToFocus(focalDistance);
     }
 
-    EnvironmentMutex::scoped_lock lockenv(GetEnv()->GetMutex());
+    EnvironmentLock lockenv(GetEnv()->GetMutex());
     RobotBasePtr probot = GetEnv()->GetRobot(robotname);
     RobotBase::ManipulatorPtr requestedManipulator = NULL;
     if( !!probot ) {
@@ -1213,7 +1213,7 @@ void QtOSGViewer::_ProcessApplicationQuit()
     // remove all messages in order to release the locks
     map<ViewerCommandPriority, list<GUIThreadFunctionPtr>> mapGUIFunctionLists;
     {
-        boost::mutex::scoped_lock lockmsg(_mutexGUIFunctions);
+        boost::unique_lock<boost::mutex> lockmsg(_mutexGUIFunctions);
         mapGUIFunctionLists.swap(_mapGUIFunctionLists);
     }
 
@@ -1486,7 +1486,7 @@ void QtOSGViewer::_SetCameraDistanceToFocus(float focalDistance)
 
 RaveTransform<float> QtOSGViewer::GetCameraTransform() const
 {
-    boost::mutex::scoped_lock lock(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lock(_mutexGUIFunctions);
     // have to flip Z axis
     RaveTransform<float> trot; trot.rot = quatFromAxisAngle(RaveVector<float>(1,0,0),(float)PI);
     return GetRaveTransformFromMatrix(_posgWidget->GetCurrentCameraManipulator()->getMatrix()) * trot;
@@ -1494,19 +1494,19 @@ RaveTransform<float> QtOSGViewer::GetCameraTransform() const
 
 float QtOSGViewer::GetCameraDistanceToFocus() const
 {
-    boost::mutex::scoped_lock lock(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lock(_mutexGUIFunctions);
     return _posgWidget->GetCameraDistanceToFocus();
 }
 
 geometry::RaveCameraIntrinsics<float> QtOSGViewer::GetCameraIntrinsics() const
 {
-    boost::mutex::scoped_lock lock(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lock(_mutexGUIFunctions);
     return _camintrinsics;
 }
 
 SensorBase::CameraIntrinsics QtOSGViewer::GetCameraIntrinsics2() const
 {
-    boost::mutex::scoped_lock lock(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lock(_mutexGUIFunctions);
     SensorBase::CameraIntrinsics intr;
     intr.fx = _camintrinsics.fx;
     intr.fy = _camintrinsics.fy;
@@ -2002,20 +2002,20 @@ bool QtOSGViewer::LoadModel(const string& filename)
 void QtOSGViewer::UpdateFromModel()
 {
     {
-        boost::mutex::scoped_lock lock(_mutexItems);
+        boost::unique_lock<boost::mutex> lock(_mutexItems);
         FOREACH(it,_listRemoveItems) {
             delete *it;
         }
         _listRemoveItems.clear();
     }
 
-    boost::mutex::scoped_lock lock(_mutexUpdateModels);
+    boost::unique_lock<boost::mutex> lock(_mutexUpdateModels);
     vector<KinBody::BodyState> vecbodies;
 
 #if BOOST_VERSION >= 103500
-    EnvironmentMutex::scoped_try_lock lockenv(GetEnv()->GetMutex(),boost::defer_lock_t());
+    EnvironmentLock lockenv(GetEnv()->GetMutex(),boost::defer_lock_t());
 #else
-    EnvironmentMutex::scoped_try_lock lockenv(GetEnv()->GetMutex(),false);
+    EnvironmentLock lockenv(GetEnv()->GetMutex(),false);
 #endif
 
     if( _bLockEnvironment && !lockenv ) {
@@ -2162,13 +2162,13 @@ void QtOSGViewer::UpdateFromModel()
     }
 }
 
-boost::shared_ptr<EnvironmentMutex::scoped_try_lock> QtOSGViewer::LockEnvironment(uint64_t timeout,bool bUpdateEnvironment)
+boost::shared_ptr<EnvironmentLock> QtOSGViewer::LockEnvironment(uint64_t timeout,bool bUpdateEnvironment)
 {
     // try to acquire the lock
 #if BOOST_VERSION >= 103500
-    boost::shared_ptr<EnvironmentMutex::scoped_try_lock> lockenv(new EnvironmentMutex::scoped_try_lock(GetEnv()->GetMutex(),boost::defer_lock_t()));
+    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),boost::defer_lock_t()));
 #else
-    boost::shared_ptr<EnvironmentMutex::scoped_try_lock> lockenv(new EnvironmentMutex::scoped_try_lock(GetEnv()->GetMutex(),false));
+    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
 #endif
     uint64_t basetime = utils::GetMicroTime();
     while(utils::GetMicroTime()-basetime<timeout ) {
@@ -2188,13 +2188,13 @@ boost::shared_ptr<EnvironmentMutex::scoped_try_lock> QtOSGViewer::LockEnvironmen
 
 void QtOSGViewer::_UpdateEnvironment()
 {
-    boost::mutex::scoped_lock lockupd(_mutexUpdating);
+    boost::unique_lock<boost::mutex> lockupd(_mutexUpdating);
 
     if( _bUpdateEnvironment ) {
         // process all messages
         map<ViewerCommandPriority, list<GUIThreadFunctionPtr>> mapGUIFunctionLists;
         {
-            boost::mutex::scoped_lock lockmsg(_mutexGUIFunctions);
+            boost::unique_lock<boost::mutex> lockmsg(_mutexGUIFunctions);
             mapGUIFunctionLists.swap(_mapGUIFunctionLists);
         }
 
@@ -2225,7 +2225,7 @@ void QtOSGViewer::_PostToGUIThread(const boost::function<void()>& fn, ViewerComm
         return;
     }
 
-    boost::mutex::scoped_lock lockmsg(_mutexGUIFunctions);
+    boost::unique_lock<boost::mutex> lockmsg(_mutexGUIFunctions);
     GUIThreadFunctionPtr pfn(new GUIThreadFunction(fn, block));
     // Block non-essential fucntions if viewer is not processing any messages
     if (!_bUpdateEnvironment && priority < ViewerCommandPriority::HIGH) {
@@ -2248,8 +2248,8 @@ void QtOSGViewer::_PostToGUIThread(const boost::function<void()>& fn, ViewerComm
 
 void QtOSGViewer::SetEnvironmentSync(bool bUpdate)
 {
-    boost::mutex::scoped_lock lockupdating(_mutexUpdating);
-    boost::mutex::scoped_lock lock(_mutexUpdateModels);
+    boost::unique_lock<boost::mutex> lockupdating(_mutexUpdating);
+    boost::unique_lock<boost::mutex> lock(_mutexUpdateModels);
     _bUpdateEnvironment = bUpdate;
     _condUpdateModels.notify_all();
 
@@ -2257,7 +2257,7 @@ void QtOSGViewer::SetEnvironmentSync(bool bUpdate)
         // remove all messages in order to release the locks
         map<ViewerCommandPriority, list<GUIThreadFunctionPtr>> mapGUIFunctionLists;
         {
-            boost::mutex::scoped_lock lockmsg(_mutexGUIFunctions);
+            boost::unique_lock<boost::mutex> lockmsg(_mutexGUIFunctions);
             mapGUIFunctionLists.swap(_mapGUIFunctionLists);
         }
 
@@ -2283,7 +2283,7 @@ void QtOSGViewer::SetEnvironmentSync(bool bUpdate)
 
 void QtOSGViewer::_DeleteItemCallback(Item* pItem)
 {
-    boost::mutex::scoped_lock lock(_mutexItems);
+    boost::unique_lock<boost::mutex> lock(_mutexItems);
     pItem->PrepForDeletion();
     _listRemoveItems.push_back(pItem);
 }
@@ -2291,14 +2291,14 @@ void QtOSGViewer::_DeleteItemCallback(Item* pItem)
 void QtOSGViewer::EnvironmentSync()
 {
     {
-        boost::mutex::scoped_lock lockupdating(_mutexUpdating);
+        boost::unique_lock<boost::mutex> lockupdating(_mutexUpdating);
         if( !_bUpdateEnvironment ) {
             RAVELOG_WARN("cannot update models from environment sync\n");
             return;
         }
     }
 
-    boost::mutex::scoped_lock lock(_mutexUpdateModels);
+    boost::unique_lock<boost::mutex> lock(_mutexUpdateModels);
     _bModelsUpdated = false;
     _condUpdateModels.wait(lock);
     if( !_bModelsUpdated ) {

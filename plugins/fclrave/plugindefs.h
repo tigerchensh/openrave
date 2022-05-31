@@ -91,6 +91,7 @@ using OpenRAVE::InterfaceBaseConstPtr;
 using OpenRAVE::PLUGININFO;
 using OpenRAVE::openrave_exception;
 using OpenRAVE::EnvironmentMutex;
+using OpenRAVE::EnvironmentLock;
 using OpenRAVE::RaveFabs;
 using OpenRAVE::ControllerBase;
 using OpenRAVE::RobotBasePtr;

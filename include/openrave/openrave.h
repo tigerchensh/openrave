@@ -68,16 +68,14 @@
 #include <boost/weak_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/format.hpp>
 #include <boost/array.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/make_shared.hpp>
 //#include <boost/cstdint.hpp>
+
+#include <openrave/boost_compat.h>
 
 #endif
 

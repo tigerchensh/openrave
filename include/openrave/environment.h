@@ -22,10 +22,18 @@
 #ifndef  OPENRAVE_ENVIRONMENTBASE_H
 #define  OPENRAVE_ENVIRONMENTBASE_H
 
+#include <openrave/boost_compat.h>
+
 namespace OpenRAVE {
 
-typedef boost::recursive_try_mutex EnvironmentMutex;
-typedef EnvironmentMutex::scoped_lock EnvironmentLock;
+#if OPENRAVE_USE_STD
+using EnvironmentMutex = std::recursive_mutex;
+using EnvironmentLock = std::unique_lock<std::recursive_mutex>;
+
+#else
+using EnvironmentMutex = boost::recursive_mutex;
+using EnvironmentLock = boost::unique_lock<boost::recursive_mutex>;
+#endif // OPENRAVE_USE_STDTHREADS
 
 /// \brief used when adding interfaces to the environment
 enum InterfaceAddMode

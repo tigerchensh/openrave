@@ -9,7 +9,6 @@
 #include <openrave/utils.h>
 #include <vector>
 #include <sstream>
-#include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
 using namespace OpenRAVE;
@@ -57,7 +56,7 @@ int main(int argc, char ** argv)
 
     while(1) {
         {
-            EnvironmentMutex::scoped_lock lock(penv->GetMutex()); // lock environment
+            EnvironmentLock lock(penv->GetMutex()); // lock environment
 
             // move robot randomly
             probot->GetActiveDOFLimits(vlower,vupper);

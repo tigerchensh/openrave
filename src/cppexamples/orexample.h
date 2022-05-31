@@ -6,7 +6,6 @@
 #include <openrave-core.h>
 #include <string>
 
-#include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
 #include <signal.h>

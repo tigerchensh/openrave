@@ -58,7 +58,7 @@ public:
         }
         boost::trim(filename);
 
-        boost::mutex::scoped_lock lock(g_mutexsoqt);
+        boost::unique_lock<boost::mutex> lock(g_mutexsoqt);
         if(!SoDB::isInitialized()) {
             SoDB::init();
         }

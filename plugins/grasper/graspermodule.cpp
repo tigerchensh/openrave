@@ -16,8 +16,6 @@
 #include "plugindefs.h"
 
 #include <algorithm>
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
 #include <cmath>
 
 
@@ -145,7 +143,7 @@ public:
 
     virtual bool _GraspCommand(std::ostream& sout, std::istream& sinput)
     {
-        EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
+        EnvironmentLock lock(GetEnv()->GetMutex());
 
         string strsavetraj;
         bool bGetLinkCollisions = false;
@@ -419,7 +417,7 @@ public:
 
     virtual bool _ComputeDistanceMapCommand(std::ostream& sout, std::istream& sinput)
     {
-        EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
+        EnvironmentLock lock(GetEnv()->GetMutex());
 
         dReal conewidth = 0.25f*PI;
         int nDistMapSamples = 60000;
@@ -477,7 +475,7 @@ public:
 
     virtual bool _GetStableContactsCommand(std::ostream& sout, std::istream& sinput)
     {
-        EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
+        EnvironmentLock lock(GetEnv()->GetMutex());
 
         string cmd;
         dReal mu=0;
@@ -711,7 +709,7 @@ public:
 
     virtual bool _GraspThreadedCommand(std::ostream& sout, std::istream& sinput)
     {
-        EnvironmentMutex::scoped_lock lock543(GetEnv()->GetMutex());
+        EnvironmentLock lock543(GetEnv()->GetMutex());
 
         WorkerParametersPtr worker_params(new WorkerParameters());
         int numthreads = 2;
@@ -859,7 +857,7 @@ public:
             size_t iapproachray = (id / (rolls.size() * preshapes.size() * standoffs.size()))%approachrays.size();
             size_t imanipulatordirection = (id / (rolls.size() * preshapes.size() * standoffs.size()*approachrays.size()));
 
-            boost::mutex::scoped_lock lock123(_mutexGrasp);
+            boost::unique_lock<boost::mutex> lock123(_mutexGrasp);
             if( _listGraspResults.size() >= maxgrasps ) {
                 break;
             }
@@ -915,7 +913,7 @@ public:
         // clone environment
         EnvironmentBasePtr pcloneenv = penv->CloneSelf(Clone_Bodies|Clone_Simulation);
         {
-            EnvironmentMutex::scoped_lock lock765(pcloneenv->GetMutex());
+            EnvironmentLock lock765(pcloneenv->GetMutex());
             boost::shared_ptr<CollisionCheckerMngr> pcheckermngr(new CollisionCheckerMngr(pcloneenv, worker_params->collisionchecker));
             PlannerBasePtr planner = RaveCreatePlanner(pcloneenv,"Grasper");
             RobotBasePtr probot = pcloneenv->GetRobot(_robot->GetName());
@@ -951,7 +949,7 @@ public:
             while(_bContinueWorker) {
                 {
                     // wait for work
-                    boost::mutex::scoped_lock lock653(_mutexGrasp);
+                    boost::unique_lock<boost::mutex> lock653(_mutexGrasp);
                     if( !_graspParamsWork ) {
                         _condGraspHasWork.wait(lock653);
                         // after signal
@@ -1161,7 +1159,7 @@ public:
 
                 RAVELOG_DEBUG(str(boost::format("grasp %d: success")%grasp_params->id));
 
-                boost::mutex::scoped_lock lock(_mutexGrasp);
+                boost::unique_lock<boost::mutex> lock(_mutexGrasp);
                 _listGraspResults.push_back(grasp_params);
             }
         }
@@ -1657,7 +1655,7 @@ protected:
         boolT ismalloc = 0;               // True if qhull should free points in qh_freeqhull() or reallocation
         char flags[]= "qhull Tv FA";     // option flags for qhull, see qh_opt.htm, output volume (FA)
 
-        boost::mutex::scoped_lock lock(s_QhullMutex);
+        boost::unique_lock<boost::mutex> lock(s_QhullMutex);
 
         if( !outfile ) {
             // outfile = tmpfile();        // stdout from qhull code

@@ -321,9 +321,6 @@ bool CreateGeometries(EnvironmentBasePtr penv, const std::string& filename, cons
 
 #include <boost/format.hpp>
 #include <boost/array.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/assert.hpp>
 #include <boost/version.hpp>

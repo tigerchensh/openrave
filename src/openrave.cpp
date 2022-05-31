@@ -28,7 +28,6 @@ using namespace std;
 
 #include <stdio.h>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/array.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -331,7 +330,7 @@ void MainOpenRAVEThread()
     }
 
     {
-        EnvironmentMutex::scoped_lock lock(penv->GetMutex());
+        EnvironmentLock lock(penv->GetMutex());
 
         if( s_sceneFile.size() > 0 ) {
             if( !penv->Load(s_sceneFile) ) {

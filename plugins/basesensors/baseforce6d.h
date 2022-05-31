@@ -165,7 +165,7 @@ public:
     virtual bool GetSensorData(SensorDataPtr psensordata) override
     {
         if( psensordata->GetType() == ST_Force6D ) {
-            boost::mutex::scoped_lock lock(_mutexdata);
+            boost::unique_lock<boost::mutex> lock(_mutexdata);
             *boost::dynamic_pointer_cast<Force6DSensorData>(psensordata) = *_pdata;
             return true;
         }

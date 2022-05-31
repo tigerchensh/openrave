@@ -11,7 +11,6 @@
 #include <cstring>
 #include <sstream>
 
-#include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
 #include <QMainWindow>

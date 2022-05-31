@@ -49,7 +49,7 @@ InterfaceBasePtr CreateInterfaceValidated(InterfaceType type, const std::string&
 #endif
         if( interfacename == "qtcoin" ) {
             // have to lock after initialized since call relies on SoDBP::globalmutex
-            boost::mutex::scoped_lock lock(g_mutexsoqt);
+            boost::unique_lock<boost::mutex> lock(g_mutexsoqt);
             EnsureSoQtInit();
             //SoDBWriteLock dblock;
             return InterfaceBasePtr(new QtCoinViewer(penv, sinput));

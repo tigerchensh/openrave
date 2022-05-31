@@ -16,8 +16,6 @@
 #define __STDC_CONSTANT_MACROS
 #include "plugindefs.h"
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/version.hpp>
 
 #include <boost/lexical_cast.hpp>
@@ -160,7 +158,7 @@ public:
         _bContinueThread = false;
         _Reset();
         {
-            boost::mutex::scoped_lock lock(_mutex);
+            boost::unique_lock<boost::mutex> lock(_mutex);
             _condnewframe.notify_all();
         }
         _threadrecord->join();
@@ -232,7 +230,7 @@ protected:
                     break;
                 }
             }
-            boost::mutex::scoped_lock lock(_mutex);
+            boost::unique_lock<boost::mutex> lock(_mutex);
             if( !pviewer ) {
                 RAVELOG_WARN("invalid viewer\n");
             }
@@ -270,7 +268,7 @@ protected:
 
     bool _SetWatermarkCommand(ostream& sout, istream& sinput)
     {
-        boost::mutex::scoped_lock lock(_mutex);
+        boost::unique_lock<boost::mutex> lock(_mutex);
         int W, H;
         sinput >> W >> H;
         _vwatermarkimage.resize(boost::extents[H][W]);
@@ -284,7 +282,7 @@ protected:
 
     void _ViewerImageCallback(const uint8_t* memory, int width, int height, int pixeldepth)
     {
-        boost::mutex::scoped_lock lock(_mutex);
+        boost::unique_lock<boost::mutex> lock(_mutex);
         if( !GetEnv() || !_callback ) {
             // recorder already destroyed and this thread is just remaining
             return;
@@ -326,7 +324,7 @@ protected:
             // calls the environment lock, which might be taken if the environment is destroying the problem
             // therefore need to take it first
             while(_bContinueThread && !_bStopRecord) {
-                boost::shared_ptr<EnvironmentMutex::scoped_try_lock> lockenv = _LockEnvironment(100000);
+                boost::shared_ptr<EnvironmentLock> lockenv = _LockEnvironment(100000);
                 if( !!lockenv ) {
                     GetEnv()->StepSimulation(_fSimulationTimeMultiplier/_framerate);
                     break;
@@ -335,13 +333,13 @@ protected:
         }
     }
 
-    boost::shared_ptr<EnvironmentMutex::scoped_try_lock> _LockEnvironment(uint64_t timeout)
+    boost::shared_ptr<EnvironmentLock> _LockEnvironment(uint64_t timeout)
     {
         // try to acquire the lock
 #if BOOST_VERSION >= 103500
-        boost::shared_ptr<EnvironmentMutex::scoped_try_lock> lockenv(new EnvironmentMutex::scoped_try_lock(GetEnv()->GetMutex(),boost::defer_lock_t()));
+        boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),boost::defer_lock_t()));
 #else
-        boost::shared_ptr<EnvironmentMutex::scoped_try_lock> lockenv(new EnvironmentMutex::scoped_try_lock(GetEnv()->GetMutex(),false));
+        boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
 #endif
         uint64_t basetime = utils::GetMicroTime();
         while(utils::GetMicroTime()-basetime<timeout ) {
@@ -362,7 +360,7 @@ protected:
             boost::shared_ptr<VideoFrame> frame;
             uint64_t numstores=0;
             {
-                boost::mutex::scoped_lock lock(_mutex);
+                boost::unique_lock<boost::mutex> lock(_mutex);
                 if( !_bContinueThread ) {
                     return;
                 }
@@ -456,7 +454,7 @@ protected:
         {
             RAVELOG_DEBUG("ViewerRecorder _Reset\n");
             _bStopRecord = true;
-            boost::mutex::scoped_lock lock(_mutex);
+            boost::unique_lock<boost::mutex> lock(_mutex);
             _nFrameCount = 0;
             _nVideoWidth = _nVideoHeight = 0;
             _framerate = 30000.0f/1001.0f;
@@ -470,7 +468,7 @@ protected:
         }
         {
             RAVELOG_DEBUG("ViewerRecorder _ResetLibrary\n");
-            boost::mutex::scoped_lock lock(_mutexlibrary);
+            boost::unique_lock<boost::mutex> lock(_mutexlibrary);
             _ResetLibrary();
         }
     }
@@ -623,7 +621,7 @@ protected:
 
     void _AddFrame(void* pdata)
     {
-        boost::mutex::scoped_lock lock(_mutexlibrary);
+        boost::unique_lock<boost::mutex> lock(_mutexlibrary);
         HRESULT hr = AVIStreamWrite(_psCompressed /*stream pointer*/, _nFrameCount /*time of this frame*/, 1 /*number to write*/, pdata, _biSizeImage /*size of this frame*/, AVIIF_KEYFRAME /*flags....*/, NULL, NULL);
         BOOST_ASSERT(hr == AVIERR_OK);
         _nFrameCount++;
@@ -853,7 +851,7 @@ protected:
 
     void _AddFrame(void* pdata)
     {
-        boost::mutex::scoped_lock lock(_mutexlibrary);
+        boost::unique_lock<boost::mutex> lock(_mutexlibrary);
         if( !_output ) {
             RAVELOG_DEBUG("video resources destroyed\n");
             return;

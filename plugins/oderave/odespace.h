@@ -16,8 +16,6 @@
 #ifndef OPENRAVE_ODE_SPACE
 #define OPENRAVE_ODE_SPACE
 
-//#include <boost/thread/tss.hpp>
-
 // manages a space of ODE objects
 class ODESpace : public boost::enable_shared_from_this<ODESpace>
 {
@@ -143,7 +141,7 @@ public:
         }
 
         virtual ~KinBodyInfo() {
-            boost::mutex::scoped_lock lock(_ode->_mutex);
+            boost::unique_lock<boost::mutex> lock(_ode->_mutex);
             Reset();
             dSpaceClean(space);
             dJointGroupEmpty(jointgroup);
@@ -284,10 +282,10 @@ private:
 
     KinBodyInfoPtr InitKinBody(KinBodyConstPtr pbody, KinBodyInfoPtr pinfo = KinBodyInfoPtr(), bool blockode=true)
     {
-        EnvironmentMutex::scoped_lock lock(pbody->GetEnv()->GetMutex());
-        boost::shared_ptr<boost::mutex::scoped_lock> lockode;
+        EnvironmentLock lock(pbody->GetEnv()->GetMutex());
+        boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
         if( blockode ) {
-            lockode.reset(new boost::mutex::scoped_lock(_ode->_mutex));
+            lockode.reset(new boost::unique_lock<boost::mutex>(_ode->_mutex));
         }
 #ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
         dAllocateODEDataForThread(dAllocateMaskAll);
@@ -529,7 +527,7 @@ private:
 #ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
         dAllocateODEDataForThread(dAllocateMaskAll);
 #endif
-        boost::mutex::scoped_lock lockode(_ode->_mutex);
+        boost::unique_lock<boost::mutex> lockode(_ode->_mutex);
         vector<KinBodyPtr> vbodies;
         _penv->GetBodies(vbodies);
         FOREACHC(itbody, vbodies) {
@@ -688,9 +686,9 @@ private:
     void _Synchronize(KinBodyInfoPtr pinfo, bool block=true)
     {
         if( pinfo->nLastStamp != pinfo->GetBody()->GetUpdateStamp() ) {
-            boost::shared_ptr<boost::mutex::scoped_lock> lockode;
+            boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
             if( block ) {
-                lockode.reset(new boost::mutex::scoped_lock(_ode->_mutex));
+                lockode.reset(new boost::unique_lock<boost::mutex>(_ode->_mutex));
             }
             vector<Transform> vtrans;
             KinBodyPtr pbody = pinfo->GetBody();

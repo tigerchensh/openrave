@@ -56,6 +56,16 @@ option(OPT_LOG4CXX "Use log4cxx for logging" ON)
 option(OPT_MSGPACK "Support msgpack format" ON)
 option(OPT_INSTALL_3DMODELDATA "If ON, then install the 3D model data." ON)
 option(OPT_EXTRA_ROBOTS "If ON, then install extra robots as part of 3D model data" ON)
+option(OPT_STD "If ON, use threads and synchronization primitives from std instead of boost." ON)
+
+if (OPT_STD)
+  message(STATUS "using threads and synchronization primitives from std.")
+  set(OPENRAVE_USE_STD 1)
+  set(CMAKE_CXX_STANDARD 17) # C++17 is required if you wish to use std namespace due to shared_mutex.
+else()
+  message(STATUS "using threads and synchronization primitives from boost.")
+  set(OPENRAVE_USE_STD 0)
+endif()
 
 set(PACKAGE_VERSION "0" CACHE STRING "the package-specific version used for uploading the sources")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/modules-cmake")
