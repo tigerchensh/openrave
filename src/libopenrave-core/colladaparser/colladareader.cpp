@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "colladacommon.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/bind/bind.hpp>
 #include <openrave/xmlreaders.h>
 #include <openrave/openravejson.h>
 #include <libxml/xmlversion.h>

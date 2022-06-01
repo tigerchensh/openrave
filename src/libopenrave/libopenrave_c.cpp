@@ -17,6 +17,10 @@
 #include "openrave_c/openrave_c.h"
 #include "libopenrave.h"
 
+#include <boost/bind/bind.hpp>
+
+using namespace boost::placeholders;
+
 namespace OpenRAVE {
 
 inline EnvironmentBasePtr& GetEnvironment(void* env)

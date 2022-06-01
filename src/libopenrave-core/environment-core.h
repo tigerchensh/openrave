@@ -25,6 +25,9 @@
 #include <boost/filesystem/operations.hpp>
 #endif
 
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
+
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
