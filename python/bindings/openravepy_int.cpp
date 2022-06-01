@@ -2133,7 +2133,7 @@ void PyEnvironmentBase::Lock()
         if( TryLock() ) {
             return;
         }
-        boost::this_thread::sleep(boost::posix_time::microseconds(10));
+        boost::this_thread::sleep_for(boost::posix_time::microseconds(10));
     }
 
     // failed, so must be a python thread blocking it...
@@ -2199,7 +2199,7 @@ bool PyEnvironmentBase::Lock(float timeout)
         if( TryLock() ) {
             return true;
         }
-        boost::this_thread::sleep(boost::posix_time::microseconds(10));
+        boost::this_thread::sleep_for(boost::posix_time::microseconds(10));
     }
     return false;
 }

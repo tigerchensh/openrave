@@ -1255,7 +1255,7 @@ boost::shared_ptr<void> QtCoinViewer::LockGUI()
 {
     boost::shared_ptr<boost::unique_lock<boost::mutex>> lock = boost::make_shared<boost::unique_lock<boost::mutex>>(_mutexGUI);
     while(!_bInIdleThread) {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+        boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
     }
     return lock;
 }

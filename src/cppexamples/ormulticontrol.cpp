@@ -125,11 +125,11 @@ public:
 
             // unlock the environment and wait for the arm controller to finish (wheel controller will never finish)
             if( !armcontroller ) {
-                boost::this_thread::sleep(boost::posix_time::milliseconds(2000));
+                boost::this_thread::sleep_for(boost::posix_time::milliseconds(2000));
             }
             else {
                 while(!armcontroller->IsDone() && IsOk()) {
-                    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+                    boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
                 }
             }
         }

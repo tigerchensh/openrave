@@ -82,7 +82,7 @@ int main(int argc, char ** argv)
         if( !pregistration && !!penv->GetViewer() ) {
             pregistration = penv->GetViewer()->RegisterViewerThreadCallback(boost::bind(ViewerCallback,penv->GetViewer()));
         }
-        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+        boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
     }
 
     thviewer.join(); // wait for the viewer thread to exit

@@ -100,7 +100,7 @@ public:
         }
 
         while(IsOk()) {
-            boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+            boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
         }
 
         RAVELOG_INFO("wait for threads to finish\n");

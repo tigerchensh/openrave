@@ -32,7 +32,7 @@ public:
     virtual void WaitRobot(RobotBasePtr probot) {
         // unlock the environment and wait for the robot to finish
         while(!probot->GetController()->IsDone() && IsOk()) {
-            boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+            boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
         }
     }
 
