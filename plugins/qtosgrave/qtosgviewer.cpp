@@ -2237,7 +2237,7 @@ void QtOSGViewer::_PostToGUIThread(const boost::function<void()>& fn, ViewerComm
     _mapGUIFunctionLists[priority].push_back(pfn);
     if( block ) {
         while(!pfn->IsFinished()) {
-            _notifyGUIFunctionComplete.wait(_mutexGUIFunctions);
+            _notifyGUIFunctionComplete.wait(lockmsg);
         }
     }
 }

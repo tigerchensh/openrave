@@ -648,7 +648,7 @@ public:
                 _conditionViewer.notify_all();
 
                 /// wait until viewer thread process it
-                pinfo->_cond.wait(_mutexViewer);
+                pinfo->_cond.wait(lock);
                 pviewer = pinfo->_pviewer;
             }
         }
