@@ -285,7 +285,7 @@ private:
         EnvironmentLock lock(pbody->GetEnv()->GetMutex());
         boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
         if( blockode ) {
-            lockode.reset(new boost::unique_lock<boost::mutex>(_ode->_mutex));
+            lockode = boost::make_shared<boost::unique_lock<boost::mutex>>(_ode->_mutex);
         }
 #ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
         dAllocateODEDataForThread(dAllocateMaskAll);
@@ -688,7 +688,7 @@ private:
         if( pinfo->nLastStamp != pinfo->GetBody()->GetUpdateStamp() ) {
             boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
             if( block ) {
-                lockode.reset(new boost::unique_lock<boost::mutex>(_ode->_mutex));
+                lockode = boost::make_shared<boost::unique_lock<boost::mutex>>(_ode->_mutex);
             }
             vector<Transform> vtrans;
             KinBodyPtr pbody = pinfo->GetBody();

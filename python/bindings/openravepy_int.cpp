@@ -2143,18 +2143,7 @@ void PyEnvironmentBase::Lock()
 /// \brief raw locking without any python overhead
 void PyEnvironmentBase::LockRaw()
 {
-#if BOOST_VERSION < 103500
-    boost::unique_lock<boost::mutex> envlock(_envmutex);
-    if( _listfreelocks.size() > 0 ) {
-        _listfreelocks.back()->lock();
-        _listenvlocks.splice(_listenvlocks.end(),_listfreelocks,--_listfreelocks.end());
-    }
-    else {
-        _listenvlocks.push_back(OPENRAVE_SHARED_PTR<EnvironmentLock>(new EnvironmentLock(_penv->GetMutex())));
-    }
-#else
     _penv->GetMutex().lock();
-#endif
 }
 
 void PyEnvironmentBase::LockReleaseGil()
@@ -2180,34 +2169,18 @@ bool PyEnvironmentBase::TryLockReleaseGil()
 {
     bool bSuccess = false;
     PythonThreadSaver saver;
-#if BOOST_VERSION < 103500
-    OPENRAVE_SHARED_PTR<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
-    if( !!lockenv->try_lock() ) {
-        bSuccess = true;
-        _listenvlocks.push_back(OPENRAVE_SHARED_PTR<EnvironmentLock>(new EnvironmentLock(_penv->GetMutex())));
-    }
-#else
     if( _penv->GetMutex().try_lock() ) {
         bSuccess = true;
     }
-#endif
     return bSuccess;
 }
 
 bool PyEnvironmentBase::TryLock()
 {
     bool bSuccess = false;
-#if BOOST_VERSION < 103500
-    OPENRAVE_SHARED_PTR<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
-    if( !!lockenv->try_lock() ) {
-        bSuccess = true;
-        _listenvlocks.push_back(OPENRAVE_SHARED_PTR<EnvironmentLock>(new EnvironmentLock(_penv->GetMutex())));
-    }
-#else
     if( _penv->GetMutex().try_lock() ) {
         bSuccess = true;
     }
-#endif
     return bSuccess;
 }
 

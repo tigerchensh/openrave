@@ -336,11 +336,7 @@ protected:
     boost::shared_ptr<EnvironmentLock> _LockEnvironment(uint64_t timeout)
     {
         // try to acquire the lock
-#if BOOST_VERSION >= 103500
-        boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),boost::defer_lock_t()));
-#else
-        boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
-#endif
+        boost::shared_ptr<EnvironmentLock> lockenv = boost::make_shared<EnvironmentLock>(GetEnv()->GetMutex(), boost::defer_lock_t());
         uint64_t basetime = utils::GetMicroTime();
         while(utils::GetMicroTime()-basetime<timeout ) {
             lockenv->try_lock();

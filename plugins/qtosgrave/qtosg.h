@@ -222,11 +222,7 @@ protected:
 inline boost::shared_ptr<EnvironmentLock> LockEnvironmentWithTimeout(EnvironmentBasePtr penv, uint64_t timeout)
 {
     // try to acquire the lock
-#if BOOST_VERSION >= 103500
-    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(penv->GetMutex(),boost::defer_lock_t()));
-#else
-    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(penv->GetMutex(),false));
-#endif
+    boost::shared_ptr<EnvironmentLock> lockenv = boost::make_shared<EnvironmentLock>(penv->GetMutex(), boost::defer_lock_t());
     uint64_t basetime = utils::GetMicroTime();
     while(utils::GetMicroTime()-basetime<timeout ) {
         if( lockenv->try_lock() ) {

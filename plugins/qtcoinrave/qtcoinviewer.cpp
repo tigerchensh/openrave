@@ -1253,7 +1253,7 @@ void QtCoinViewer::Reset()
 
 boost::shared_ptr<void> QtCoinViewer::LockGUI()
 {
-    boost::shared_ptr<boost::unique_lock<boost::mutex>> lock(new boost::unique_lock<boost::mutex>(_mutexGUI));
+    boost::shared_ptr<boost::unique_lock<boost::mutex>> lock = boost::make_shared<boost::unique_lock<boost::mutex>>(_mutexGUI);
     while(!_bInIdleThread) {
         boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     }
@@ -2680,11 +2680,7 @@ void QtCoinViewer::_deselect()
 boost::shared_ptr<EnvironmentLock> QtCoinViewer::LockEnvironment(uint64_t timeout,bool bUpdateEnvironment)
 {
     // try to acquire the lock
-#if BOOST_VERSION >= 103500
-    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),boost::defer_lock_t()));
-#else
-    boost::shared_ptr<EnvironmentLock> lockenv(new EnvironmentLock(GetEnv()->GetMutex(),false));
-#endif
+    boost::shared_ptr<EnvironmentLock> lockenv = boost::make_shared<EnvironmentLock>(GetEnv()->GetMutex(),boost::defer_lock_t());
     uint64_t basetime = utils::GetMicroTime();
     while(utils::GetMicroTime()-basetime<timeout ) {
         if( lockenv->try_lock() ) {
@@ -3697,7 +3693,7 @@ QtCoinViewer::EnvMessage::EnvMessage(QtCoinViewerPtr pviewer, void** ppreturn, b
 {
     // get a mutex
     if( bWaitForMutex ) {
-        _plock.reset(new boost::unique_lock<boost::mutex>(_mutex));
+        _plock = boost::make_shared<boost::unique_lock<boost::mutex>>(_mutex);
     }
 }
 
