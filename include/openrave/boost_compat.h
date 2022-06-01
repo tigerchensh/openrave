@@ -24,6 +24,8 @@ using recursive_mutex = ::std::recursive_mutex;
 using shared_mutex    = ::std::shared_mutex;
 using thread          = ::std::thread;
 using defer_lock_t    = ::std::defer_lock_t;
+using try_to_lock_t   = ::std::try_to_lock_t;
+using adopt_lock_t    = ::std::adopt_lock_t;
 
 #define BOOST_ONCE_INIT ::std::once_flag()
 

@@ -240,7 +240,7 @@ void IvObjectDragger::CheckCollision(bool flag)
         // synchronize the collision model transform
         KinBodyItemPtr pbody = boost::dynamic_pointer_cast<KinBodyItem>(selectedItem);
         if( !!pbody ) {
-            EnvironmentLock lock(_penv->GetMutex());
+            EnvironmentLock lock(_penv->GetMutex(), boost::try_to_lock_t());
             if( !!lock ) {
                 int prevoptions = _penv->GetCollisionChecker()->GetCollisionOptions();
                 _penv->GetCollisionChecker()->SetCollisionOptions(CO_Contacts);
@@ -450,7 +450,7 @@ void IvJointDragger::CheckCollision(bool flag)
         KinBodyItemPtr pbody = boost::dynamic_pointer_cast<KinBodyItem>(selectedItem);
 
         if( !!pbody ) {
-            EnvironmentLock lock(_penv->GetMutex());
+            EnvironmentLock lock(_penv->GetMutex(), boost::try_to_lock_t());
             if( !!lock ) {
                 int prevoptions = _penv->GetCollisionChecker()->GetCollisionOptions();
                 _penv->GetCollisionChecker()->SetCollisionOptions(CO_Contacts);
@@ -488,7 +488,7 @@ void IvJointDragger::UpdateSkeleton()
     RobotItemPtr probotitem = boost::dynamic_pointer_cast<RobotItem>(pbody);
 
     {
-        EnvironmentLock lock(_penv->GetMutex());
+        EnvironmentLock lock(_penv->GetMutex(), boost::try_to_lock_t());
 
         if( !!lock ) {
             KinBody::JointPtr pjoint = pbody->GetBody()->GetJoints()[_iJointIndex];

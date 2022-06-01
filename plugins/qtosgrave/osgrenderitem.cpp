@@ -778,7 +778,7 @@ bool KinBodyItem::UpdateFromModel(const vector<dReal>& vjointvalues, const vecto
     }
 
     if( _bReload || _bDrawStateChanged ) {
-        EnvironmentLock lockenv(_pbody->GetEnv()->GetMutex());
+        EnvironmentLock lockenv(_pbody->GetEnv()->GetMutex(), boost::try_to_lock_t());
         if( !!lockenv ) {
             if( _bReload || _bDrawStateChanged ) {
                 Load();
