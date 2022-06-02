@@ -26,14 +26,8 @@
 
 namespace OpenRAVE {
 
-#if OPENRAVE_USE_STD
-using EnvironmentMutex = std::recursive_mutex;
-using EnvironmentLock = std::unique_lock<std::recursive_mutex>;
-
-#else
-using EnvironmentMutex = boost::recursive_mutex;
-using EnvironmentLock = rstd::unique_lock<boost::recursive_mutex>;
-#endif // OPENRAVE_USE_STDTHREADS
+using EnvironmentMutex = rstd::recursive_mutex;
+using EnvironmentLock = rstd::unique_lock<EnvironmentMutex>;
 
 /// \brief used when adding interfaces to the environment
 enum InterfaceAddMode
