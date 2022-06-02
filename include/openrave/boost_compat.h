@@ -15,19 +15,10 @@
 
 namespace rstd {
 
-namespace this_thread = ::std::this_thread;
+using namespace ::std;
+namespace posix_time = ::std::chrono;
 
-using condition       = ::std::condition_variable;
-using mutex           = ::std::mutex;
-using once_flag       = ::std::once_flag;
-using recursive_mutex = ::std::recursive_mutex;
-using shared_mutex    = ::std::shared_mutex;
-using thread          = ::std::thread;
-using defer_lock_t    = ::std::defer_lock_t;
-using try_to_lock_t   = ::std::try_to_lock_t;
-using adopt_lock_t    = ::std::adopt_lock_t;
-
-#define BOOST_ONCE_INIT ::std::once_flag()
+using condition = ::std::condition_variable;
 
 // NOTE: The argument order between std::call_once and boost::call_once is reversed.
 // So we have to follow the Boost convention here.
@@ -36,24 +27,9 @@ void call_once(Callable&& f, std::once_flag& flag) {
     std::call_once(flag, f);
 }
 
-template <typename Mutex>
-using lock_guard = ::std::lock_guard<Mutex>;
+#define BOOST_ONCE_INIT ::std::once_flag()
 
-template <typename Mutex>
-using unique_lock = ::std::unique_lock<Mutex>;
-
-template <typename Mutex>
-using shared_lock = ::std::shared_lock<Mutex>;
-
-namespace posix_time {
-
-using microseconds = ::std::chrono::microseconds;
-using milliseconds = ::std::chrono::milliseconds;
-using seconds      = ::std::chrono::seconds;
-
-} // namespace posix_time
-
-} // namespace boost
+} // namespace
 
 #else
 
