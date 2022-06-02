@@ -210,7 +210,7 @@ protected:
 
     std::vector<dReal> _vjointvalues;
     vector<Transform> _vtrans;
-    mutable boost::mutex _mutexjoints;
+    mutable rstd::mutex _mutexjoints;
     UserDataPtr _geometrycallback, _drawcallback;
 
 private:

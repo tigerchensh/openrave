@@ -13,7 +13,7 @@
 #include <shared_mutex>
 #include <thread>
 
-namespace boost {
+namespace rstd {
 
 namespace this_thread = ::std::this_thread;
 
@@ -59,6 +59,8 @@ using seconds      = ::std::chrono::seconds;
 
 #include <boost/thread/condition.hpp>
 #include <boost/thread.hpp>
+
+namespace rstd = ::boost;
 
 #endif // OPENRAVE_USE_STD
  

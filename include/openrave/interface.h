@@ -307,7 +307,7 @@ public:
     std::string __description;     /// \see GetDescription()
     std::string __struri; ///< \see GetURI
 
-    virtual boost::shared_mutex& GetInterfaceMutex() const {
+    virtual rstd::shared_mutex& GetInterfaceMutex() const {
         return _mutexInterface;
     }
 
@@ -322,7 +322,7 @@ private:
         throw openrave_exception("InterfaceBase copying not allowed");
     }
 
-    mutable boost::shared_mutex _mutexInterface; ///< internal mutex for protecting data from methods that might be access from any thread (those methods should be commented).
+    mutable rstd::shared_mutex _mutexInterface; ///< internal mutex for protecting data from methods that might be access from any thread (those methods should be commented).
     InterfaceType __type; ///< \see GetInterfaceType
     UserDataPtr __plugin; ///< handle to plugin that controls the executable code. As long as this plugin pointer is present, module will not be unloaded.
     std::string __strpluginname; ///< the name of the plugin, necessary?

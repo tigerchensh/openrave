@@ -30,7 +30,7 @@ InterfaceBase::InterfaceBase(InterfaceType type, EnvironmentBasePtr penv) : __ty
 
 InterfaceBase::~InterfaceBase()
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     __mapCommands.clear();
     __mapUserData.clear();
     __mapReadableInterfaces.clear();
@@ -42,7 +42,7 @@ void InterfaceBase::SetUserData(const std::string& key, UserDataPtr data) const
 {
     UserDataPtr olduserdata;
     {
-        boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+        rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
         std::map<std::string, UserDataPtr>::iterator it = __mapUserData.find(key);
         if( it == __mapUserData.end() ) {
             __mapUserData[key] = data;
@@ -57,7 +57,7 @@ void InterfaceBase::SetUserData(const std::string& key, UserDataPtr data) const
 
 UserDataPtr InterfaceBase::GetUserData(const std::string& key) const
 {
-    boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
     std::map<std::string, UserDataPtr>::const_iterator it = __mapUserData.find(key);
     if( it == __mapUserData.end() ) {
         return UserDataPtr();
@@ -70,7 +70,7 @@ bool InterfaceBase::RemoveUserData(const std::string& key) const
     // have to destroy the userdata pointer outside the lock, otherwise can get into a deadlock
     UserDataPtr olduserdata;
     {
-        boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+        rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
         std::map<std::string, UserDataPtr>::iterator it = __mapUserData.find(key);
         if( it == __mapUserData.end() ) {
             return false;
@@ -96,7 +96,7 @@ void InterfaceBase::Clone(InterfaceBaseConstPtr preference, int cloningoptions)
 
 bool InterfaceBase::SupportsCommand(const std::string& cmd)
 {
-    boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
     return __mapCommands.find(cmd) != __mapCommands.end();
 }
 
@@ -109,7 +109,7 @@ bool InterfaceBase::SendCommand(ostream& sout, istream& sinput)
     }
     boost::shared_ptr<InterfaceCommand> interfacecmd;
     {
-        boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+        rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
         CMDMAP::iterator it = __mapCommands.find(cmd);
         if( it == __mapCommands.end() ) {
             throw openrave_exception(str(boost::format(_("failed to find command '%s' in interface %s\n"))%cmd.c_str()%GetXMLId()),ORE_CommandNotSupported);
@@ -134,7 +134,7 @@ void InterfaceBase::Serialize(BaseXMLWriterPtr writer, int options) const
 
 void InterfaceBase::RegisterCommand(const std::string& cmdname, InterfaceBase::InterfaceCommandFn fncmd, const std::string& strhelp)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     if((cmdname.size() == 0)|| !utils::IsValidName(cmdname) ||(_stricmp(cmdname.c_str(),"commands") == 0)) {
         throw openrave_exception(str(boost::format(_("command '%s' invalid"))%cmdname),ORE_InvalidArguments);
     }
@@ -146,7 +146,7 @@ void InterfaceBase::RegisterCommand(const std::string& cmdname, InterfaceBase::I
 
 void InterfaceBase::UnregisterCommand(const std::string& cmdname)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     CMDMAP::iterator it = __mapCommands.find(cmdname);
     if( it != __mapCommands.end() ) {
         __mapCommands.erase(it);
@@ -155,7 +155,7 @@ void InterfaceBase::UnregisterCommand(const std::string& cmdname)
 
 bool InterfaceBase::_GetCommandHelp(std::ostream& o, std::istream& sinput) const
 {
-    boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
     string cmd, label;
     CMDMAP::const_iterator it;
     while(!sinput.eof()) {
@@ -211,13 +211,13 @@ bool InterfaceBase::_GetCommandHelp(std::ostream& o, std::istream& sinput) const
 
 bool InterfaceBase::SupportsJSONCommand(const std::string& cmd)
 {
-    boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
     return __mapJSONCommands.find(cmd) != __mapJSONCommands.end();
 }
 
 void InterfaceBase::RegisterJSONCommand(const std::string& cmdname, InterfaceBase::InterfaceJSONCommandFn fncmd, const std::string& strhelp)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     if((cmdname.size() == 0)|| !utils::IsValidName(cmdname)) {
         throw openrave_exception(str(boost::format(_("command '%s' invalid"))%cmdname),ORE_InvalidArguments);
     }
@@ -229,7 +229,7 @@ void InterfaceBase::RegisterJSONCommand(const std::string& cmdname, InterfaceBas
 
 void InterfaceBase::UnregisterJSONCommand(const std::string& cmdname)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     JSONCMDMAP::iterator it = __mapJSONCommands.find(cmdname);
     if( it != __mapJSONCommands.end() ) {
         __mapJSONCommands.erase(it);
@@ -241,7 +241,7 @@ void InterfaceBase::SendJSONCommand(const std::string& cmdname, const rapidjson:
 
     boost::shared_ptr<InterfaceJSONCommand> interfacecmd;
     {
-        boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+        rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
         JSONCMDMAP::iterator it = __mapJSONCommands.find(cmdname);
         if( it == __mapJSONCommands.end() ) {
             throw openrave_exception(str(boost::format(_("failed to find JSON command '%s' in interface %s\n"))%cmdname.c_str()%GetXMLId()),ORE_CommandNotSupported);
@@ -261,14 +261,14 @@ void InterfaceBase::_GetJSONCommandHelp(const rapidjson::Value& input, rapidjson
 
 ReadablePtr InterfaceBase::GetReadableInterface(const std::string& id) const
 {
-    boost::shared_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::shared_lock< rstd::shared_mutex > lock(_mutexInterface);
     READERSMAP::const_iterator it = __mapReadableInterfaces.find(id);
     return it != __mapReadableInterfaces.end() ? it->second : ReadablePtr();
 }
 
 ReadablePtr InterfaceBase::SetReadableInterface(const std::string& id, ReadablePtr readable)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     READERSMAP::iterator it = __mapReadableInterfaces.find(id);
     if( it == __mapReadableInterfaces.end() ) {
         if( !!readable ) {
@@ -288,7 +288,7 @@ ReadablePtr InterfaceBase::SetReadableInterface(const std::string& id, ReadableP
 
 void InterfaceBase::SetReadableInterfaces(const InterfaceBase::READERSMAP& mapReadables, bool bClearAllExisting)
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     if( bClearAllExisting ) {
         __mapReadableInterfaces = mapReadables;
     }
@@ -299,17 +299,17 @@ void InterfaceBase::SetReadableInterfaces(const InterfaceBase::READERSMAP& mapRe
 
 void InterfaceBase::ClearReadableInterfaces()
 {
-    boost::unique_lock< boost::shared_mutex > lock(_mutexInterface);
+    rstd::unique_lock< rstd::shared_mutex > lock(_mutexInterface);
     __mapReadableInterfaces.clear();
 }
 
 void InterfaceBase::ClearReadableInterface(const std::string& id) {
-    boost::unique_lock<boost::shared_mutex> lock(_mutexInterface);
+    rstd::unique_lock<rstd::shared_mutex> lock(_mutexInterface);
     __mapReadableInterfaces.erase(id);
 }
 
 bool InterfaceBase::UpdateReadableInterfaces(const std::map<std::string, ReadablePtr>& newReadableInterfaces) {
-    boost::unique_lock<boost::shared_mutex> lock(_mutexInterface);
+    rstd::unique_lock<rstd::shared_mutex> lock(_mutexInterface);
     bool bChanged = false;
     bool bNewAllFound = true;
     FOREACH(it, newReadableInterfaces) {

@@ -74,7 +74,7 @@ public:
 
             // unlock the environment and wait for the robot to finish
             while(!probot->GetController()->IsDone() && IsOk()) {
-                boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
+                rstd::this_thread::sleep_for(rstd::posix_time::milliseconds(1));
             }
         }
     }

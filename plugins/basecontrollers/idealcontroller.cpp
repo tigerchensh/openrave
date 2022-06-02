@@ -144,7 +144,7 @@ If SetDesired is called, only joint values will be set at every timestep leaving
     virtual bool SetPath(TrajectoryBaseConstPtr ptraj)
     {
         OPENRAVE_ASSERT_FORMAT0(!ptraj || GetEnv()==ptraj->GetEnv(), "trajectory needs to come from the same environment as the controller", ORE_InvalidArguments);
-        boost::unique_lock<boost::mutex> lock(_mutex);
+        rstd::unique_lock<rstd::mutex> lock(_mutex);
         if( _bPause ) {
             RAVELOG_DEBUG("IdealController cannot start trajectories when paused\n");
             _ptraj.reset();
@@ -259,7 +259,7 @@ If SetDesired is called, only joint values will be set at every timestep leaving
         if( _bPause ) {
             return;
         }
-        boost::unique_lock<boost::mutex> lock(_mutex);
+        rstd::unique_lock<rstd::mutex> lock(_mutex);
         TrajectoryBaseConstPtr ptraj = _ptraj; // because of multi-threading setting issues
         if( !!ptraj ) {
             RobotBasePtr probot = _probot.lock();
@@ -562,7 +562,7 @@ private:
     UserDataPtr _cblimits;
     ConfigurationSpecification _samplespec;
     boost::shared_ptr<ConfigurationSpecification::Group> _gjointvalues, _gtransform;
-    boost::mutex _mutex;
+    rstd::mutex _mutex;
 };
 
 ControllerBasePtr CreateIdealController(EnvironmentBasePtr penv, std::istream& sinput)

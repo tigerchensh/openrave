@@ -32,7 +32,7 @@ using EnvironmentLock = std::unique_lock<std::recursive_mutex>;
 
 #else
 using EnvironmentMutex = boost::recursive_mutex;
-using EnvironmentLock = boost::unique_lock<boost::recursive_mutex>;
+using EnvironmentLock = rstd::unique_lock<boost::recursive_mutex>;
 #endif // OPENRAVE_USE_STDTHREADS
 
 /// \brief used when adding interfaces to the environment

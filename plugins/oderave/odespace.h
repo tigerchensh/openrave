@@ -27,7 +27,7 @@ class ODESpace : public boost::enable_shared_from_this<ODESpace>
     //    static void AllocateODEResources()
     //    {
     //#ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
-    //        static boost::thread_specific_ptr<bool> isalloc;
+    //        static rstd::thread_specific_ptr<bool> isalloc;
     //        if( !isalloc.get() ) {
     //            RAVELOG_INFO("allocating ode resources\n");
     //            isalloc.reset(new bool(true));
@@ -67,7 +67,7 @@ public:
         dWorldID world;          ///< the dynamics world
         dSpaceID space;          ///< the collision world
         dJointGroupID contactgroup;
-        boost::mutex _mutex;
+        rstd::mutex _mutex;
     };
 
 public:
@@ -141,7 +141,7 @@ public:
         }
 
         virtual ~KinBodyInfo() {
-            boost::unique_lock<boost::mutex> lock(_ode->_mutex);
+            rstd::unique_lock<rstd::mutex> lock(_ode->_mutex);
             Reset();
             dSpaceClean(space);
             dJointGroupEmpty(jointgroup);
@@ -283,9 +283,9 @@ private:
     KinBodyInfoPtr InitKinBody(KinBodyConstPtr pbody, KinBodyInfoPtr pinfo = KinBodyInfoPtr(), bool blockode=true)
     {
         EnvironmentLock lock(pbody->GetEnv()->GetMutex());
-        boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
+        boost::shared_ptr<rstd::unique_lock<rstd::mutex>> lockode;
         if( blockode ) {
-            lockode = boost::make_shared<boost::unique_lock<boost::mutex>>(_ode->_mutex);
+            lockode = boost::make_shared<rstd::unique_lock<rstd::mutex>>(_ode->_mutex);
         }
 #ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
         dAllocateODEDataForThread(dAllocateMaskAll);
@@ -527,7 +527,7 @@ private:
 #ifdef ODE_HAVE_ALLOCATE_DATA_THREAD
         dAllocateODEDataForThread(dAllocateMaskAll);
 #endif
-        boost::unique_lock<boost::mutex> lockode(_ode->_mutex);
+        rstd::unique_lock<rstd::mutex> lockode(_ode->_mutex);
         vector<KinBodyPtr> vbodies;
         _penv->GetBodies(vbodies);
         FOREACHC(itbody, vbodies) {
@@ -686,9 +686,9 @@ private:
     void _Synchronize(KinBodyInfoPtr pinfo, bool block=true)
     {
         if( pinfo->nLastStamp != pinfo->GetBody()->GetUpdateStamp() ) {
-            boost::shared_ptr<boost::unique_lock<boost::mutex>> lockode;
+            boost::shared_ptr<rstd::unique_lock<rstd::mutex>> lockode;
             if( block ) {
-                lockode = boost::make_shared<boost::unique_lock<boost::mutex>>(_ode->_mutex);
+                lockode = boost::make_shared<rstd::unique_lock<rstd::mutex>>(_ode->_mutex);
             }
             vector<Transform> vtrans;
             KinBodyPtr pbody = pinfo->GetBody();

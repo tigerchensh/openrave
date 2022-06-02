@@ -122,10 +122,10 @@ void ORCTriMeshDestroy(void* trimesh)
 }
 
 // can only support one viewer per environment
-typedef std::map<EnvironmentBasePtr, boost::shared_ptr<boost::thread> > VIEWERMAP;
+typedef std::map<EnvironmentBasePtr, boost::shared_ptr<rstd::thread> > VIEWERMAP;
 static VIEWERMAP s_mapEnvironmentThreadViewers;
-static boost::mutex s_mutexViewer;
-static boost::condition s_conditionViewer;
+static rstd::mutex s_mutexViewer;
+static rstd::condition s_conditionViewer;
 
 void ORCEnvironmentDestroy(void* env)
 {
@@ -234,7 +234,7 @@ void CViewerThread(EnvironmentBasePtr penv, const string &strviewer, int bShowVi
 {
     ViewerBasePtr pviewer;
     {
-        boost::unique_lock<boost::mutex> lock(s_mutexViewer);
+        rstd::unique_lock<rstd::mutex> lock(s_mutexViewer);
         pviewer = RaveCreateViewer(penv, strviewer);
         if( !!pviewer ) {
             penv->Add(pviewer, IAM_AllowRenaming);
@@ -265,8 +265,8 @@ int ORCEnvironmentSetViewer(void* env, const char* viewername)
     }
 
     if( !!viewername && strlen(viewername) > 0 ) {
-        boost::unique_lock<boost::mutex> lock(s_mutexViewer);
-        boost::shared_ptr<boost::thread> threadviewer(new boost::thread(boost::bind(CViewerThread, penv, std::string(viewername), true)));
+        rstd::unique_lock<rstd::mutex> lock(s_mutexViewer);
+        boost::shared_ptr<rstd::thread> threadviewer(new rstd::thread(boost::bind(CViewerThread, penv, std::string(viewername), true)));
         s_mapEnvironmentThreadViewers[penv] = threadviewer;
         s_conditionViewer.wait(lock);
     }

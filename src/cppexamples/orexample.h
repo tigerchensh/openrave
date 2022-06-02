@@ -60,7 +60,7 @@ public:
 
             // create the main openrave thread
             _bDestroyThread = false;
-            _thopenrave = boost::thread(boost::bind(&OpenRAVEExample::_demothreadwrapper,this,argc,argv));
+            _thopenrave = rstd::thread(boost::bind(&OpenRAVEExample::_demothreadwrapper,this,argc,argv));
 
             // start the viewer main loop
             _viewer->main(true);
@@ -90,7 +90,7 @@ private:
     OpenRAVE::ViewerBasePtr _viewer;
     std::string _viewername;
     bool _bDestroyThread;
-    boost::thread _thopenrave;
+    rstd::thread _thopenrave;
 
     void quitviewer(void *) {
         if( !!_viewer ) {

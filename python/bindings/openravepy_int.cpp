@@ -568,7 +568,7 @@ class ViewerManager
         EnvironmentBasePtr _penv;
         std::string _viewername;
         ViewerBasePtr _pviewer; /// the created viewer
-        boost::condition _cond;  ///< notify when viewer thread is done processing and has initialized _pviewer
+        rstd::condition _cond;  ///< notify when viewer thread is done processing and has initialized _pviewer
         bool _bShowViewer; ///< true if should show the viewer when initially created
     };
     typedef OPENRAVE_SHARED_PTR<ViewerInfo> ViewerInfoPtr;
@@ -576,7 +576,7 @@ public:
     ViewerManager() {
         _bShutdown = false;
         _bInMain = false;
-        _threadviewer.reset(new boost::thread(boost::bind(&ViewerManager::_RunViewerThread, this)));
+        _threadviewer.reset(new rstd::thread(boost::bind(&ViewerManager::_RunViewerThread, this)));
     }
 
     virtual ~ViewerManager() {
@@ -584,7 +584,7 @@ public:
     }
 
     static ViewerManager& GetInstance() {
-        boost::call_once(_InitializeSingleton, _onceInitialize);
+        rstd::call_once(_InitializeSingleton, _onceInitialize);
         // Return reference to object.
         return *_singleton;
     }
@@ -599,7 +599,7 @@ public:
 
             if( bDoNotAddIfExists ) {
                 // check all existing viewers
-                boost::unique_lock<boost::mutex> lock(_mutexViewer);
+                rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
                 std::list<ViewerInfoPtr>::iterator itviewer = _listviewerinfos.begin();
                 while(itviewer != _listviewerinfos.end() ) {
                     if( (*itviewer)->_penv == penv ) {
@@ -636,14 +636,14 @@ public:
                         pviewer->Show(1);
                     }
                     pinfo->_pviewer = pviewer;
-                    boost::unique_lock<boost::mutex> lock(_mutexViewer);
+                    rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
                     _listviewerinfos.push_back(pinfo);
                     _conditionViewer.notify_all();
                 }
             }
             else {
                 // no viewer has been created yet, so let the viewer thread create it (if using Qt, this initializes the QApplication in the right thread
-                boost::unique_lock<boost::mutex> lock(_mutexViewer);
+                rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
                 _listviewerinfos.push_back(pinfo);
                 _conditionViewer.notify_all();
 
@@ -662,7 +662,7 @@ public:
             return false;
         }
         {
-            boost::unique_lock<boost::mutex> lock(_mutexViewer);
+            rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
             FOREACH(itviewer, _listviewerinfos) {
                 ViewerBasePtr ptestviewer = (*itviewer)->_pviewer;
                 if(ptestviewer == pviewer ) {
@@ -683,7 +683,7 @@ public:
         }
         bool bremoved = false;
         {
-            boost::unique_lock<boost::mutex> lock(_mutexViewer);
+            rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
             std::list<ViewerInfoPtr>::iterator itinfo = _listviewerinfos.begin();
             while(itinfo != _listviewerinfos.end() ) {
                 if( (*itinfo)->_penv == penv ) {
@@ -701,7 +701,7 @@ public:
     void Destroy() {
         _bShutdown = true;
         {
-            boost::unique_lock<boost::mutex> lock(_mutexViewer);
+            rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
             // have to notify everyone
             FOREACH(itinfo, _listviewerinfos) {
                 (*itinfo)->_cond.notify_all();
@@ -722,7 +722,7 @@ protected:
             std::list<ViewerBasePtr> listviewers, listtempviewers;
             bool bShowViewer = true;
             {
-                boost::unique_lock<boost::mutex> lock(_mutexViewer);
+                rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
                 if( _listviewerinfos.size() == 0 ) {
                     _conditionViewer.wait(lock);
                     if( _listviewerinfos.size() == 0 ) {
@@ -805,7 +805,7 @@ protected:
                 _bInMain = false;
                 // remove from _listviewerinfos in order to avoid running the main loop again
                 {
-                    boost::unique_lock<boost::mutex> lock(_mutexViewer);
+                    rstd::unique_lock<rstd::mutex> lock(_mutexViewer);
                     FOREACH(itinfo, _listviewerinfos) {
                         if( (*itinfo)->_pviewer == puseviewer ) {
                             _listviewerinfos.erase(itinfo);
@@ -826,21 +826,21 @@ protected:
 
     }
 
-    OPENRAVE_SHARED_PTR<boost::thread> _threadviewer;
-    boost::mutex _mutexViewer;
-    boost::condition _conditionViewer;
+    OPENRAVE_SHARED_PTR<rstd::thread> _threadviewer;
+    rstd::mutex _mutexViewer;
+    rstd::condition _conditionViewer;
     std::list<ViewerInfoPtr> _listviewerinfos;
 
     bool _bShutdown; ///< if true, shutdown everything
     bool _bInMain; ///< if true, viewer thread is running a main function
 
     static boost::scoped_ptr<ViewerManager> _singleton; ///< singleton
-    static boost::once_flag _onceInitialize; ///< makes sure initialization is atomic
+    static rstd::once_flag _onceInitialize; ///< makes sure initialization is atomic
 
 };
 
 boost::scoped_ptr<ViewerManager> ViewerManager::_singleton(0);
-boost::once_flag ViewerManager::_onceInitialize = BOOST_ONCE_INIT;
+rstd::once_flag ViewerManager::_onceInitialize = BOOST_ONCE_INIT;
 
 PyInterfaceBase::PyInterfaceBase(InterfaceBasePtr pbase, PyEnvironmentBasePtr pyenv) : _pbase(pbase), _pyenv(pyenv)
 {
@@ -1158,7 +1158,7 @@ PyEnvironmentBasePtr PyEnvironmentBase::CloneSelf(int options)
 {
 //        string strviewer;
 //        if( options & Clone_Viewer ) {
-//            boost::unique_lock<boost::mutex> lockcreate(_mutexViewer);
+//            rstd::unique_lock<rstd::mutex> lockcreate(_mutexViewer);
 //            if( !!_penv->GetViewer() ) {
 //                strviewer = _penv->GetViewer()->GetXMLId();
 //            }
@@ -1174,7 +1174,7 @@ PyEnvironmentBasePtr PyEnvironmentBase::CloneSelf(const std::string& clonedEnvNa
 {
 //        string strviewer;
 //        if( options & Clone_Viewer ) {
-//            boost::unique_lock<boost::mutex> lockcreate(_mutexViewer);
+//            rstd::unique_lock<rstd::mutex> lockcreate(_mutexViewer);
 //            if( !!_penv->GetViewer() ) {
 //                strviewer = _penv->GetViewer()->GetXMLId();
 //            }
@@ -1192,7 +1192,7 @@ void PyEnvironmentBase::Clone(PyEnvironmentBasePtr pyreference, int options)
         if( !!_penv->GetViewer() && !!pyreference->GetEnv()->GetViewer() ) {
             if( _penv->GetViewer()->GetXMLId() != pyreference->GetEnv()->GetViewer()->GetXMLId() ) {
                 RAVELOG_VERBOSE("reset the viewer since it has to be cloned\n");
-                //boost::unique_lock<boost::mutex> lockcreate(pyreference->_mutexViewer);
+                //rstd::unique_lock<rstd::mutex> lockcreate(pyreference->_mutexViewer);
                 SetViewer("");
             }
         }
@@ -1206,7 +1206,7 @@ void PyEnvironmentBase::Clone(PyEnvironmentBasePtr pyreference, const std::strin
         if( !!_penv->GetViewer() && !!pyreference->GetEnv()->GetViewer() ) {
             if( _penv->GetViewer()->GetXMLId() != pyreference->GetEnv()->GetViewer()->GetXMLId() ) {
                 RAVELOG_VERBOSE("reset the viewer since it has to be cloned\n");
-                //boost::unique_lock<boost::mutex> lockcreate(pyreference->_mutexViewer);
+                //rstd::unique_lock<rstd::mutex> lockcreate(pyreference->_mutexViewer);
                 SetViewer("");
             }
         }
@@ -2133,7 +2133,7 @@ void PyEnvironmentBase::Lock()
         if( TryLock() ) {
             return;
         }
-        boost::this_thread::sleep_for(boost::posix_time::microseconds(10));
+        rstd::this_thread::sleep_for(rstd::posix_time::microseconds(10));
     }
 
     // failed, so must be a python thread blocking it...
@@ -2155,7 +2155,7 @@ void PyEnvironmentBase::LockReleaseGil()
 void PyEnvironmentBase::Unlock()
 {
 #if BOOST_VERSION < 103500
-    boost::unique_lock<boost::mutex> envlock(_envmutex);
+    rstd::unique_lock<rstd::mutex> envlock(_envmutex);
     BOOST_ASSERT(_listenvlocks.size()>0);
     _listenvlocks.back()->unlock();
     _listfreelocks.splice(_listfreelocks.end(),_listenvlocks,--_listenvlocks.end());
@@ -2199,7 +2199,7 @@ bool PyEnvironmentBase::Lock(float timeout)
         if( TryLock() ) {
             return true;
         }
-        boost::this_thread::sleep_for(boost::posix_time::microseconds(10));
+        rstd::this_thread::sleep_for(rstd::posix_time::microseconds(10));
     }
     return false;
 }

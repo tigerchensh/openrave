@@ -65,8 +65,8 @@ using boost::placeholders::_1;
 namespace OpenRAVEXMLParser
 {
 
-static boost::once_flag __onceCreateXMLMutex = BOOST_ONCE_INIT;
-static boost::once_flag __onceSetAssimpLog = BOOST_ONCE_INIT;
+static rstd::once_flag __onceCreateXMLMutex = BOOST_ONCE_INIT;
+static rstd::once_flag __onceSetAssimpLog = BOOST_ONCE_INIT;
 
 /// lock for parsing XML, don't make it a static variable in order to ensure it remains valid for as long as possible
 static EnvironmentMutex* __mutexXML;
@@ -109,7 +109,7 @@ void __SetAssimpLog()
 
 EnvironmentMutex* GetXMLMutex()
 {
-    boost::call_once(__CreateXMLMutex,__onceCreateXMLMutex);
+    rstd::call_once(__CreateXMLMutex,__onceCreateXMLMutex);
     return __mutexXML;
 }
 
@@ -144,7 +144,7 @@ class aiSceneManaged
 {
 public:
     aiSceneManaged(const std::string& dataorfilename, bool bIsFilename=true, const std::string& formathint=std::string(), unsigned int flags = aiProcess_JoinIdenticalVertices|aiProcess_Triangulate|aiProcess_FindDegenerates|aiProcess_PreTransformVertices|aiProcess_SortByPType) {
-        boost::call_once(__SetAssimpLog,__onceSetAssimpLog);
+        rstd::call_once(__SetAssimpLog,__onceSetAssimpLog);
         _importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_POINT|aiPrimitiveType_LINE);
         if( bIsFilename ) {
             _scene = _importer.ReadFile(dataorfilename.c_str(),flags);

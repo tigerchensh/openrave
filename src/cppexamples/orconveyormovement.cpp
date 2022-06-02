@@ -140,7 +140,7 @@ public:
         sin.str("registerbody data/ketchup.kinbody.xml 0.3");
         p->SendCommand(sout,sin);
         while(IsOk()) {
-            boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
+            rstd::this_thread::sleep_for(rstd::posix_time::milliseconds(1));
         }
     }
 };

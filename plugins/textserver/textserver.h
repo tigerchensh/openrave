@@ -401,8 +401,8 @@ public:
 #endif
 
         RAVELOG_DEBUG("text server listening on port %d\n",_nPort);
-        _servthread.reset(new boost::thread(boost::bind(&SimpleTextServer::_listen_threadcb,this)));
-        _workerthread.reset(new boost::thread(boost::bind(&SimpleTextServer::_worker_threadcb,this)));
+        _servthread.reset(new rstd::thread(boost::bind(&SimpleTextServer::_listen_threadcb,this)));
+        _workerthread.reset(new rstd::thread(boost::bind(&SimpleTextServer::_worker_threadcb,this)));
         bInitThread = true;
         return 0;
     }
@@ -412,7 +412,7 @@ public:
         Reset();
 
         {
-            boost::unique_lock<boost::mutex> lock(_mutexWorker);     // need lock to keep multiple threads out of Destroy
+            rstd::unique_lock<rstd::mutex> lock(_mutexWorker);     // need lock to keep multiple threads out of Destroy
             if( bDestroying ) {
                 return;
             }
@@ -452,7 +452,7 @@ public:
     virtual void Reset()
     {
         {
-            boost::unique_lock<boost::mutex> lock(_mutexWorker);
+            rstd::unique_lock<rstd::mutex> lock(_mutexWorker);
             listWorkers.clear();
             _mapFigureIds.clear();
         }
@@ -481,7 +481,7 @@ private:
     // called from threads other than the main worker to wait until
     void _SyncWithWorkerThread()
     {
-        boost::unique_lock<boost::mutex> lock(_mutexWorker);
+        rstd::unique_lock<rstd::mutex> lock(_mutexWorker);
         while((listWorkers.size() > 0 || _bWorking) && !bCloseThread) {
             _condHasWork.notify_all();
             _condWorker.wait(lock);
@@ -490,7 +490,7 @@ private:
 
     void ScheduleWorker(const boost::function<void()>& fn)
     {
-        boost::unique_lock<boost::mutex> lock(_mutexWorker);
+        rstd::unique_lock<rstd::mutex> lock(_mutexWorker);
         listWorkers.push_back(fn);
         _condHasWork.notify_all();
     }
@@ -500,7 +500,7 @@ private:
         list<boost::function<void()> > listlocalworkers;
         while(!bCloseThread) {
             {
-                boost::unique_lock<boost::mutex> lock(_mutexWorker);
+                rstd::unique_lock<rstd::mutex> lock(_mutexWorker);
                 _condHasWork.wait(lock);
                 if( bCloseThread ) {
                     break;
@@ -546,7 +546,7 @@ private:
             }
 
             // start a new thread
-            _listReadThreads.push_back(boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&SimpleTextServer::_read_threadcb,shared_server(), psocket))));
+            _listReadThreads.push_back(boost::shared_ptr<rstd::thread>(new rstd::thread(boost::bind(&SimpleTextServer::_read_threadcb,shared_server(), psocket))));
             psocket.reset(new Socket());
         }
 
@@ -643,12 +643,12 @@ private:
 
     int _nPort;     ///< port used for listening to incoming connections
 
-    boost::shared_ptr<boost::thread> _servthread, _workerthread;
-    list<boost::shared_ptr<boost::thread> > _listReadThreads;
+    boost::shared_ptr<rstd::thread> _servthread, _workerthread;
+    list<boost::shared_ptr<rstd::thread> > _listReadThreads;
 
-    boost::mutex _mutexWorker;
-    boost::condition _condWorker;
-    boost::condition _condHasWork;
+    rstd::mutex _mutexWorker;
+    rstd::condition _condWorker;
+    rstd::condition _condHasWork;
 
     bool bInitThread;
     bool bCloseThread;
@@ -734,7 +734,7 @@ protected:
         if( cmd == "quit" ) {
             GetEnv()->Reset();
             // call exit in a different thread
-            new boost::thread(_CallExit);
+            new rstd::thread(_CallExit);
         }
         return true;
     }

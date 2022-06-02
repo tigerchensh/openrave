@@ -250,7 +250,7 @@ public:
 
     virtual void Init(bool bStartSimulationThread=true)
     {
-        boost::unique_lock<boost::mutex> lockinit(_mutexInit);
+        rstd::unique_lock<rstd::mutex> lockinit(_mutexInit);
         if( _bInit ) {
             RAVELOG_WARN("environment is already initialized, ignoring\n");
             return;
@@ -327,7 +327,7 @@ public:
 
     virtual void Destroy()
     {
-        boost::unique_lock<boost::mutex> lockdestroy(_mutexInit);
+        rstd::unique_lock<rstd::mutex> lockdestroy(_mutexInit);
         if( !_bInit ) {
             RAVELOG_VERBOSE_FORMAT("env=%s is already destroyed", GetNameId());
             return;
@@ -3283,7 +3283,7 @@ protected:
             Destroy();
         }
 
-        boost::unique_lock<boost::mutex> lockinit(_mutexInit);
+        rstd::unique_lock<rstd::mutex> lockinit(_mutexInit);
         if( !bCheckSharedResources ) {
             SetCollisionChecker(CollisionCheckerBasePtr());
             SetPhysicsEngine(PhysicsEngineBasePtr());
@@ -3916,7 +3916,7 @@ protected:
     {
         if( !_threadSimulation ) {
             _bShutdownSimulation = false;
-            _threadSimulation.reset(new boost::thread(boost::bind(&Environment::_SimulationThread, this)));
+            _threadSimulation.reset(new rstd::thread(boost::bind(&Environment::_SimulationThread, this)));
         }
     }
 
@@ -3960,7 +3960,7 @@ protected:
                             lockenv.reset();
                             // sleep for less time since sleep isn't accurate at all and we have a 7ms buffer
                             int actual_sleep=max((int)sleeptime*6/8,1000);
-                            boost::this_thread::sleep_for(boost::posix_time::microseconds(actual_sleep));
+                            rstd::this_thread::sleep_for(rstd::posix_time::microseconds(actual_sleep));
                             //RAVELOG_INFO("sleeptime ideal %d, actually slept: %d\n",(int)sleeptime,(int)actual_sleep);
                             nLastSleptTime = utils::GetMicroTime();
                             //Since already slept this cycle, wait till next time to sleep.
@@ -3982,7 +3982,7 @@ protected:
 
             if( utils::GetMicroTime()-nLastSleptTime > 20000 ) {     // 100000 freezes the environment
                 lockenv.reset();
-                boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
+                rstd::this_thread::sleep_for(rstd::posix_time::milliseconds(1));
                 bNeedSleep = false;
                 nLastSleptTime = utils::GetMicroTime();
             }
@@ -4006,7 +4006,7 @@ protected:
             //TODO: Verify if this always has to happen even if thread slept in RT if statement above
             lockenv.reset(); // always release at the end of loop to give other threads time
             if( bNeedSleep ) {
-                boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
+                rstd::this_thread::sleep_for(rstd::posix_time::milliseconds(1));
             }
         }
     }
@@ -4030,7 +4030,7 @@ protected:
     boost::shared_ptr<EnvironmentLock> _LockEnvironmentWithTimeout(uint64_t timeout)
     {
         // try to acquire the lock
-        boost::shared_ptr<EnvironmentLock> lockenv = boost::make_shared<EnvironmentLock>(GetMutex(), boost::defer_lock_t());
+        boost::shared_ptr<EnvironmentLock> lockenv = boost::make_shared<EnvironmentLock>(GetMutex(), rstd::defer_lock_t());
         uint64_t basetime = utils::GetMicroTime();
         while(utils::GetMicroTime()-basetime<timeout ) {
             lockenv->try_lock();
@@ -4210,7 +4210,7 @@ protected:
     CollisionCheckerBasePtr _pCurrentChecker;
     PhysicsEngineBasePtr _pPhysicsEngine;
 
-    boost::shared_ptr<boost::thread> _threadSimulation;                      ///< main loop for environment simulation
+    boost::shared_ptr<rstd::thread> _threadSimulation;                      ///< main loop for environment simulation
 
     mutable EnvironmentMutex _mutexEnvironment;          ///< protects internal data from multithreading issues
     mutable std::shared_timed_mutex _mutexInterfaces;     ///< lock when managing interfaces like _listOwnedInterfaces, _listModules as well as _vecbodies and supporting data such as _mapBodyNameIndex, _mapBodyIdIndex and _environmentIndexRecyclePool
@@ -4218,7 +4218,7 @@ protected:
     using ExclusiveLock = std::lock_guard< std::shared_timed_mutex >;
     using SharedLock = std::shared_lock< std::shared_timed_mutex >;
 
-    mutable boost::mutex _mutexInit;     ///< lock for destroying the environment
+    mutable rstd::mutex _mutexInit;     ///< lock for destroying the environment
 
     vector<KinBody::BodyState> _vPublishedBodies; ///< protected by _mutexInterfaces
     string _homedirectory;

@@ -73,7 +73,7 @@ public:
     virtual ~ChangeCallbackData() {
         KinBodyConstPtr pbody = _pweakbody.lock();
         if( !!pbody ) {
-            boost::unique_lock< boost::shared_mutex > lock(pbody->GetInterfaceMutex());
+            rstd::unique_lock< rstd::shared_mutex > lock(pbody->GetInterfaceMutex());
             FOREACH(itinfo, _iterators) {
                 pbody->_vlistRegisteredCallbacks.at(itinfo->first).erase(itinfo->second);
             }
@@ -4903,7 +4903,7 @@ void KinBody::_ComputeInternalInformation()
     while(parameters && index < _vlistRegisteredCallbacks.size()) {
         if( (parameters & 1) &&  _vlistRegisteredCallbacks.at(index).size() > 0 ) {
             {
-                boost::shared_lock< boost::shared_mutex > lock(GetInterfaceMutex());
+                rstd::shared_lock< rstd::shared_mutex > lock(GetInterfaceMutex());
                 listRegisteredCallbacks = _vlistRegisteredCallbacks.at(index); // copy since it can be changed
             }
             FOREACH(it,listRegisteredCallbacks) {
@@ -5688,7 +5688,7 @@ void KinBody::_PostprocessChangedParameters(uint32_t parameters)
     while(parameters && index < _vlistRegisteredCallbacks.size()) {
         if( (parameters & 1) &&  _vlistRegisteredCallbacks.at(index).size() > 0 ) {
             {
-                boost::shared_lock< boost::shared_mutex > lock(GetInterfaceMutex());
+                rstd::shared_lock< rstd::shared_mutex > lock(GetInterfaceMutex());
                 listRegisteredCallbacks = _vlistRegisteredCallbacks.at(index); // copy since it can be changed
             }
             FOREACH(it,listRegisteredCallbacks) {
@@ -5802,7 +5802,7 @@ ConfigurationSpecification KinBody::GetConfigurationSpecificationIndices(const s
 UserDataPtr KinBody::RegisterChangeCallback(uint32_t properties, const boost::function<void()>&callback) const
 {
     ChangeCallbackDataPtr pdata(new ChangeCallbackData(properties,callback,shared_kinbody_const()));
-    boost::unique_lock< boost::shared_mutex > lock(GetInterfaceMutex());
+    rstd::unique_lock< rstd::shared_mutex > lock(GetInterfaceMutex());
 
     uint32_t index = 0;
     while(properties) {

@@ -165,7 +165,7 @@ public:
     virtual bool GetSensorData(SensorDataPtr psensordata) override
     {
         if( psensordata->GetType() == ST_Force6D ) {
-            boost::unique_lock<boost::mutex> lock(_mutexdata);
+            rstd::unique_lock<rstd::mutex> lock(_mutexdata);
             *boost::dynamic_pointer_cast<Force6DSensorData>(psensordata) = *_pdata;
             return true;
         }
@@ -204,7 +204,7 @@ protected:
 
     Transform _trans;
 
-    mutable boost::mutex _mutexdata;
+    mutable rstd::mutex _mutexdata;
 
     friend class BaseForce6DXMLReader;
 };

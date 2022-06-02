@@ -3203,7 +3203,7 @@ BOOST_TYPEOF_REGISTER_TYPE(ColladaWriter::articulated_system_output)
 
 void RaveWriteColladaFile(EnvironmentBasePtr penv, const string& filename, const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     ColladaWriter writer(penv, atts);
     std::string scenename, keywords, subject, author;
     FOREACHC(itatt,atts) {
@@ -3263,7 +3263,7 @@ void RaveWriteColladaFile(EnvironmentBasePtr penv, const string& filename, const
 
 void RaveWriteColladaFile(KinBodyPtr pbody, const string& filename, const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     ColladaWriter writer(pbody->GetEnv(),atts);
     std::string keywords, subject, author;
     FOREACHC(itatt,atts) {
@@ -3287,7 +3287,7 @@ void RaveWriteColladaFile(KinBodyPtr pbody, const string& filename, const Attrib
 
 void RaveWriteColladaFile(const std::list<KinBodyPtr>& listbodies, const std::string& filename,const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     if( listbodies.size() > 0 ) {
         EnvironmentBasePtr penv = listbodies.front()->GetEnv();
         ColladaWriter writer(penv,atts);
@@ -3351,7 +3351,7 @@ void RaveWriteColladaFile(const std::list<KinBodyPtr>& listbodies, const std::st
 
 void RaveWriteColladaMemory(EnvironmentBasePtr penv, std::vector<char>& output, const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     ColladaWriter writer(penv, atts);
     std::string scenename, keywords, subject, author;
     FOREACHC(itatt,atts) {
@@ -3398,7 +3398,7 @@ void RaveWriteColladaMemory(EnvironmentBasePtr penv, std::vector<char>& output, 
 
 void RaveWriteColladaMemory(KinBodyPtr pbody, std::vector<char>& output, const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     ColladaWriter writer(pbody->GetEnv(),atts);
     std::string keywords, subject, author;
     FOREACHC(itatt,atts) {
@@ -3422,7 +3422,7 @@ void RaveWriteColladaMemory(KinBodyPtr pbody, std::vector<char>& output, const A
 
 void RaveWriteColladaMemory(const std::list<KinBodyPtr>& listbodies, std::vector<char>& output,  const AttributesList& atts)
 {
-    boost::unique_lock<boost::mutex> lock(GetGlobalDAEMutex());
+    rstd::unique_lock<rstd::mutex> lock(GetGlobalDAEMutex());
     output.clear();
     if( listbodies.size() > 0 ) {
         EnvironmentBasePtr penv = listbodies.front()->GetEnv();

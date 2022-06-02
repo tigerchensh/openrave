@@ -125,7 +125,7 @@ private:
 
     virtual void _CreateImageWindow()
     {
-        boost::unique_lock<boost::mutex> lock(_mutex);
+        rstd::unique_lock<rstd::mutex> lock(_mutex);
         if( !_imagewindow ) {
             _imagewindow.reset(new QtImageWindow(_psensor));
             _imagewindow->show();
@@ -138,7 +138,7 @@ private:
 
     SensorBasePtr _psensor;
     boost::shared_ptr<QtImageWindow> _imagewindow;
-    boost::mutex _mutex;
+    rstd::mutex _mutex;
 };
 
 #endif

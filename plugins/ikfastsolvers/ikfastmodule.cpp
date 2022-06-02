@@ -408,7 +408,7 @@ public:
 //#endif
 
         // before adding a new library, check for existing
-        boost::unique_lock<boost::mutex> lock(GetLibraryMutex());
+        rstd::unique_lock<rstd::mutex> lock(GetLibraryMutex());
         boost::shared_ptr<IkLibrary> lib;
         FOREACH(it, *GetLibraries()) {
             if( libraryname == (*it)->GetLibraryName() ) {
@@ -1534,9 +1534,9 @@ public:
         return s_vStaticLibraries;
     }
 
-    static boost::mutex& GetLibraryMutex()
+    static rstd::mutex& GetLibraryMutex()
     {
-        static boost::mutex s_LibraryMutex;
+        static rstd::mutex s_LibraryMutex;
         return s_LibraryMutex;
     }
 
@@ -1546,7 +1546,7 @@ public:
         string name; name.resize(_name.size());
         std::transform(_name.begin(), _name.end(), name.begin(), ::tolower);
         /// start from the newer libraries
-        boost::unique_lock<boost::mutex> lock(GetLibraryMutex());
+        rstd::unique_lock<rstd::mutex> lock(GetLibraryMutex());
         for(list< boost::shared_ptr<IkLibrary> >::reverse_iterator itlib = GetLibraries()->rbegin(); itlib != GetLibraries()->rend(); ++itlib) {
             FOREACHC(itikname,(*itlib)->GetIkNames()) {
                 if( name == *itikname ) {

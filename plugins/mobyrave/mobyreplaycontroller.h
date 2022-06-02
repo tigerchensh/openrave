@@ -431,7 +431,7 @@ public:
     virtual bool SetPath(TrajectoryBaseConstPtr ptraj)
     {
         OPENRAVE_ASSERT_FORMAT0(!ptraj || GetEnv()==ptraj->GetEnv(), "trajectory needs to come from the same environment as the controller", ORE_InvalidArguments);
-        boost::unique_lock<boost::mutex> lock(_mutex);
+        rstd::unique_lock<rstd::mutex> lock(_mutex);
         if( _bPause ) {
             RAVELOG_DEBUG("MobyReplayController cannot start trajectories when paused\n");
             _ptraj.reset();
@@ -559,7 +559,7 @@ public:
             return;
         }
  
-        boost::unique_lock<boost::mutex> lock(_mutex);
+        rstd::unique_lock<rstd::mutex> lock(_mutex);
         TrajectoryBaseConstPtr ptraj = _ptraj; // because of multi-threading setting issues
         if( !!ptraj ) {
             vector<dReal> sampledata;
@@ -963,7 +963,7 @@ private:
     UserDataPtr _cblimits;
     ConfigurationSpecification _samplespec;
     boost::shared_ptr<ConfigurationSpecification::Group> _gjointvalues, _gjointvelocities, _gtransform;
-    boost::mutex _mutex;
+    rstd::mutex _mutex;
 
     EnvironmentBasePtr _penv;
 

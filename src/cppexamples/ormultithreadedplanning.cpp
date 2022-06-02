@@ -94,13 +94,13 @@ public:
         int numthreads = 2;
 
         // start worker threads
-        vector<boost::shared_ptr<boost::thread> > vthreads(numthreads);
+        vector<boost::shared_ptr<rstd::thread> > vthreads(numthreads);
         for(size_t i = 0; i < vthreads.size(); ++i) {
-            vthreads[i].reset(new boost::thread(boost::bind(&MultithreadedPlanningExample::_PlanningThread,this,probot->GetName())));
+            vthreads[i].reset(new rstd::thread(boost::bind(&MultithreadedPlanningExample::_PlanningThread,this,probot->GetName())));
         }
 
         while(IsOk()) {
-            boost::this_thread::sleep_for(boost::posix_time::milliseconds(1));
+            rstd::this_thread::sleep_for(rstd::posix_time::milliseconds(1));
         }
 
         RAVELOG_INFO("wait for threads to finish\n");

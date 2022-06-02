@@ -50,7 +50,7 @@ extern "C"
 
 #endif
 
-static boost::mutex s_QhullMutex;
+static rstd::mutex s_QhullMutex;
 
 #define GTS_M_ICOSAHEDRON_X /* sqrt(sqrt(5)+1)/sqrt(2*sqrt(5)) */   \
     (dReal)0.850650808352039932181540497063011072240401406
@@ -838,9 +838,9 @@ public:
 
         _bContinueWorker = true;
         // start worker threads
-        vector<boost::shared_ptr<boost::thread> > listthreads(numthreads);
+        vector<boost::shared_ptr<rstd::thread> > listthreads(numthreads);
         FOREACH(itthread,listthreads) {
-            itthread->reset(new boost::thread(boost::bind(&GrasperModule::_WorkerThread,this,worker_params,pcloneenv)));
+            itthread->reset(new rstd::thread(boost::bind(&GrasperModule::_WorkerThread,this,worker_params,pcloneenv)));
         }
 
         _listGraspResults.clear();
@@ -857,7 +857,7 @@ public:
             size_t iapproachray = (id / (rolls.size() * preshapes.size() * standoffs.size()))%approachrays.size();
             size_t imanipulatordirection = (id / (rolls.size() * preshapes.size() * standoffs.size()*approachrays.size()));
 
-            boost::unique_lock<boost::mutex> lock123(_mutexGrasp);
+            rstd::unique_lock<rstd::mutex> lock123(_mutexGrasp);
             if( _listGraspResults.size() >= maxgrasps ) {
                 break;
             }
@@ -949,7 +949,7 @@ public:
             while(_bContinueWorker) {
                 {
                     // wait for work
-                    boost::unique_lock<boost::mutex> lock653(_mutexGrasp);
+                    rstd::unique_lock<rstd::mutex> lock653(_mutexGrasp);
                     if( !_graspParamsWork ) {
                         _condGraspHasWork.wait(lock653);
                         // after signal
@@ -1159,7 +1159,7 @@ public:
 
                 RAVELOG_DEBUG(str(boost::format("grasp %d: success")%grasp_params->id));
 
-                boost::unique_lock<boost::mutex> lock(_mutexGrasp);
+                rstd::unique_lock<rstd::mutex> lock(_mutexGrasp);
                 _listGraspResults.push_back(grasp_params);
             }
         }
@@ -1167,10 +1167,10 @@ public:
     }
 
     bool _bContinueWorker;
-    boost::mutex _mutexGrasp;
+    rstd::mutex _mutexGrasp;
     GraspParametersThreadPtr _graspParamsWork;
     list<GraspParametersThreadPtr> _listGraspResults;
-    boost::condition _condGraspHasWork, _condGraspReceivedWork;
+    rstd::condition _condGraspHasWork, _condGraspReceivedWork;
 
 protected:
     void _ComputeJointMaxLengths(vector<dReal>& vjointlengths)
@@ -1655,7 +1655,7 @@ protected:
         boolT ismalloc = 0;               // True if qhull should free points in qh_freeqhull() or reallocation
         char flags[]= "qhull Tv FA";     // option flags for qhull, see qh_opt.htm, output volume (FA)
 
-        boost::unique_lock<boost::mutex> lock(s_QhullMutex);
+        rstd::unique_lock<rstd::mutex> lock(s_QhullMutex);
 
         if( !outfile ) {
             // outfile = tmpfile();        // stdout from qhull code
@@ -1778,7 +1778,7 @@ protected:
     PlannerBasePtr _planner;
     RobotBasePtr _robot;
     CollisionReportPtr _report;
-    boost::mutex _mutex;
+    rstd::mutex _mutex;
     FILE *outfile;
     FILE *errfile;
     std::vector<dReal> _vjointmaxlengths;

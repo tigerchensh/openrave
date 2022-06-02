@@ -725,13 +725,13 @@ bool KinBodyItem::UpdateFromOSG()
 
 void KinBodyItem::GetDOFValues(vector<dReal>& vjoints) const
 {
-    boost::unique_lock<boost::mutex> lock(_mutexjoints);
+    rstd::unique_lock<rstd::mutex> lock(_mutexjoints);
     vjoints = _vjointvalues;
 }
 
 void KinBodyItem::GetLinkTransformations(vector<Transform>& vtrans, std::vector<dReal>& vdofvalues) const
 {
-    boost::unique_lock<boost::mutex> lock(_mutexjoints);
+    rstd::unique_lock<rstd::mutex> lock(_mutexjoints);
     vtrans = _vtrans;
     vdofvalues = _vjointvalues;
 }
@@ -778,7 +778,7 @@ bool KinBodyItem::UpdateFromModel(const vector<dReal>& vjointvalues, const vecto
     }
 
     if( _bReload || _bDrawStateChanged ) {
-        EnvironmentLock lockenv(_pbody->GetEnv()->GetMutex(), boost::try_to_lock_t());
+        EnvironmentLock lockenv(_pbody->GetEnv()->GetMutex(), rstd::try_to_lock_t());
         if( !!lockenv ) {
             if( _bReload || _bDrawStateChanged ) {
                 Load();
@@ -786,7 +786,7 @@ bool KinBodyItem::UpdateFromModel(const vector<dReal>& vjointvalues, const vecto
         }
     }
 
-    boost::unique_lock<boost::mutex> lock(_mutexjoints);
+    rstd::unique_lock<rstd::mutex> lock(_mutexjoints);
     _vjointvalues = vjointvalues;
     _vtrans = vtrans;
 
