@@ -10,8 +10,18 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include <shared_mutex>
 #include <thread>
+
+// Compatibility ifdef for downstream projects that don't have C++17 enabled
+// Fall back to boost. We want to keep the C++17 flag enabled only for OpenRAVE.
+#if __has_include(<shared_mutex>)
+#include <shared_mutex>
+#else
+#include <boost/thread/shared_mutex.hpp>
+namespace rstd {
+using shared_mutex = ::boost::shared_mutex;
+} // namespace
+#endif
 
 namespace rstd {
 
