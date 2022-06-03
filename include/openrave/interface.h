@@ -23,6 +23,7 @@
 #define OPENRAVE_INTERFACE_BASE
 
 #include <rapidjson/document.h>
+#include <openrave/boost_compat.h>
 
 namespace OpenRAVE {
 
