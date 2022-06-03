@@ -67,4 +67,8 @@
 // whether msgpack is to be used
 #define OPENRAVE_MSGPACK @OPENRAVE_MSGPACK@
 
+// whether to use the boost or std namespace for certain facilities (experimental)
+// 0 - use boost, 1 - use std
+#define OPENRAVE_USE_STD @OPENRAVE_USE_STD@
+
 #endif
