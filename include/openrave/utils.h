@@ -24,6 +24,7 @@
 #define OPENRAVE_UTILS_H
 
 #include <openrave/config.h>
+#include <openrave/boost_compat.h>
 #include <stdint.h>
 #include <string>
 #include <istream>
