@@ -36,7 +36,7 @@
 # include <cstring>
 #include <assert.h>
 #include <vector>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 using namespace std;
 
 # define ERROR 1
@@ -2653,7 +2653,7 @@ void data_init ( void )
   return;
 }
 //****************************************************************************80
-static boost::mutex s_mutexread;
+static std::mutex s_mutexread;
 
 bool ReadFile(const char* pfilename, std::vector<float>& vertices, std::vector<int>& indices)
 {
@@ -2663,7 +2663,7 @@ bool ReadFile(const char* pfilename, std::vector<float>& vertices, std::vector<i
     if( pfilename == NULL )
         return false;
 
-    boost::mutex::scoped_lock lock(s_mutexread);
+    std::lock_guard<std::mutex> lock(s_mutexread);
     init_program_data();
     filein_name = strdup(pfilename);
     bool bsuccess = data_read();

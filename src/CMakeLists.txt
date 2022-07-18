@@ -3,7 +3,7 @@ set (openrave_SOURCES openrave.cpp)
 
 include_directories(${OPENRAVE_INCLUDE_LOCAL_DIRS})
 
-set(openrave_libraries ${LIBXML2_LIBRARIES} ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} openrave-md5)
+set(openrave_libraries ${LIBXML2_LIBRARIES} openrave-md5)
 if( Boost_FILESYSTEM_FOUND AND Boost_SYSTEM_FOUND )
   set(openrave_libraries ${openrave_libraries} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 endif()
@@ -99,7 +99,7 @@ else()
   set(SOCKET_LIBS)
 endif()
 
-target_link_libraries(openrave PRIVATE boost_assertion_failed PUBLIC ${Boost_DATE_TIME_LIBRARY} ${Boost_THREAD_LIBRARY} ${SOCKET_LIBS} ${openrave_libraries} libopenrave libopenrave-core)
+target_link_libraries(openrave PRIVATE boost_assertion_failed PUBLIC ${SOCKET_LIBS} ${openrave_libraries} libopenrave libopenrave-core)
 
 install(TARGETS openrave DESTINATION bin COMPONENT ${COMPONENT_PREFIX}base)
 if( OPT_BUILD_PACKAGE_DEFAULT AND OPENRAVE_BIN_SUFFIX )

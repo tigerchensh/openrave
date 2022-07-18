@@ -16,8 +16,6 @@
 #ifndef OPENRAVE_ODE_SPACE
 #define OPENRAVE_ODE_SPACE
 
-//#include <boost/thread/tss.hpp>
-
 // manages a space of ODE objects
 class ODESpace : public boost::enable_shared_from_this<ODESpace>
 {

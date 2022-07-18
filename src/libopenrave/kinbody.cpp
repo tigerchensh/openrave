@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "libopenrave.h"
 #include <algorithm>
+#include <shared_mutex>
 
 // used for functions that are also used internally
 #define CHECK_NO_INTERNAL_COMPUTATION OPENRAVE_ASSERT_FORMAT(_nHierarchyComputed == 0, "env=%s, body %s cannot be added to environment when doing this operation, current value is %d", GetEnv()->GetNameId()%GetName()%_nHierarchyComputed, ORE_InvalidState);
@@ -72,7 +73,7 @@ public:
     virtual ~ChangeCallbackData() {
         KinBodyConstPtr pbody = _pweakbody.lock();
         if( !!pbody ) {
-            std::unique_lock<boost::shared_mutex> lock(pbody->GetInterfaceMutex());
+            std::unique_lock<std::shared_mutex> lock(pbody->GetInterfaceMutex());
             FOREACH(itinfo, _iterators) {
                 pbody->_vlistRegisteredCallbacks.at(itinfo->first).erase(itinfo->second);
             }
@@ -4902,7 +4903,7 @@ void KinBody::_ComputeInternalInformation()
     while(parameters && index < _vlistRegisteredCallbacks.size()) {
         if( (parameters & 1) &&  _vlistRegisteredCallbacks.at(index).size() > 0 ) {
             {
-                boost::shared_lock< boost::shared_mutex > lock(GetInterfaceMutex());
+                std::shared_lock< std::shared_mutex > lock(GetInterfaceMutex());
                 listRegisteredCallbacks = _vlistRegisteredCallbacks.at(index); // copy since it can be changed
             }
             FOREACH(it,listRegisteredCallbacks) {
@@ -5687,7 +5688,7 @@ void KinBody::_PostprocessChangedParameters(uint32_t parameters)
     while(parameters && index < _vlistRegisteredCallbacks.size()) {
         if( (parameters & 1) &&  _vlistRegisteredCallbacks.at(index).size() > 0 ) {
             {
-                boost::shared_lock< boost::shared_mutex > lock(GetInterfaceMutex());
+                std::shared_lock< std::shared_mutex > lock(GetInterfaceMutex());
                 listRegisteredCallbacks = _vlistRegisteredCallbacks.at(index); // copy since it can be changed
             }
             FOREACH(it,listRegisteredCallbacks) {
@@ -5801,7 +5802,7 @@ ConfigurationSpecification KinBody::GetConfigurationSpecificationIndices(const s
 UserDataPtr KinBody::RegisterChangeCallback(uint32_t properties, const boost::function<void()>&callback) const
 {
     ChangeCallbackDataPtr pdata(new ChangeCallbackData(properties,callback,shared_kinbody_const()));
-    std::unique_lock<boost::shared_mutex> lock(GetInterfaceMutex());
+    std::unique_lock<std::shared_mutex> lock(GetInterfaceMutex());
 
     uint32_t index = 0;
     while(properties) {
