@@ -2136,22 +2136,6 @@ void KinBody::SetDOFValues(const dReal* pJointValues, int dof, uint32_t checklim
         pJointValues = &_vTempJoints[0];
     }
 
-    if( !!_pCurrentKinematicsFunctions ) {
-        if(_pCurrentKinematicsFunctions->SetLinkTransforms(pJointValues, _vLinkTransformPointers)) {
-            // have to set _doflastsetvalues!
-            for(const JointPtr& pjoint : _vecjoints) {
-                Joint& joint = *pjoint;
-                int dofindex = joint.GetDOFIndex();
-                for(int iaxis = 0; iaxis < joint.GetDOF(); ++iaxis) {
-                    joint._doflastsetvalues[iaxis] = pJointValues[dofindex+iaxis];
-                }
-            }
-            _UpdateGrabbedBodies();
-            _PostprocessChangedParameters(Prop_LinkTransforms);
-            return;
-        }
-    }
-
     // have to compute the angles ahead of time since they are dependent on the link
     const int nActiveJoints = _vecjoints.size();
     const int nPassiveJoints = _vPassiveJoints.size();
@@ -3990,10 +3974,6 @@ void KinBody::_ComputeInternalInformation()
     _nHierarchyComputed = 1;
 
     _vLinkTransformPointers.clear();
-    if( !!_pCurrentKinematicsFunctions ) {
-        RAVELOG_DEBUG_FORMAT("env=%d, resetting custom kinematics functions for body %s", GetEnv()->GetId()%GetName());
-        _pCurrentKinematicsFunctions.reset();
-    }
 
     int lindex=0;
     FOREACH(itlink,_veclinks) {
@@ -4917,19 +4897,6 @@ void KinBody::_ComputeInternalInformation()
     }
     _nParametersChanged = 0;
 
-    if( !!_pKinematicsGenerator ) {
-        _pCurrentKinematicsFunctions = _pKinematicsGenerator->GenerateKinematicsFunctions(*this);
-        if( !!_pCurrentKinematicsFunctions ) {
-            RAVELOG_DEBUG_FORMAT("env=%s, setting custom kinematics functions for body %s", GetEnv()->GetNameId()%GetName());
-        }
-        else {
-            RAVELOG_DEBUG_FORMAT("env=%s, failed to set custom kinematics functions for body %s", GetEnv()->GetNameId()%GetName());
-        }
-    }
-    else {
-        _pCurrentKinematicsFunctions.reset();
-    }
-
     RAVELOG_VERBOSE_FORMAT("env=%d, initialized %s in %f[s]", GetEnv()->GetId()%GetName()%(1e-6*(utils::GetMicroTime()-starttime)));
 }
 
@@ -5463,8 +5430,6 @@ void KinBody::Clone(InterfaceBaseConstPtr preference, int cloningoptions)
     InterfaceBase::Clone(preference,cloningoptions);
     KinBodyConstPtr r = RaveInterfaceConstCast<KinBody>(preference);
 
-    _pKinematicsGenerator.reset();
-    _pCurrentKinematicsFunctions.reset();
     _name = r->_name;
     _nHierarchyComputed = r->_nHierarchyComputed;
     _bMakeJoinedLinksAdjacent = r->_bMakeJoinedLinksAdjacent;
@@ -5653,9 +5618,6 @@ void KinBody::Clone(InterfaceBaseConstPtr preference, int cloningoptions)
             // InitKinBody will be called when the body is added to the environment.
         }
     }
-
-    // can copy the generator, but not the functions! use SetKinematicsGenerator
-    SetKinematicsGenerator(r->_pKinematicsGenerator);
 
     _nUpdateStampId++; // update the stamp instead of copying
 }
@@ -6179,36 +6141,6 @@ UpdateFromInfoResult KinBody::UpdateFromKinBodyInfo(const KinBodyInfo& info)
     }
 
     return updateFromInfoResult;
-}
-
-void KinBody::SetKinematicsGenerator(KinematicsGeneratorPtr pGenerator)
-{
-    if( _pKinematicsGenerator == pGenerator ) {
-        // same pointer, so do nothing
-        return;
-    }
-    _pKinematicsGenerator = pGenerator;
-    if( !!_pKinematicsGenerator ) {
-        try {
-            _pCurrentKinematicsFunctions = _pKinematicsGenerator->GenerateKinematicsFunctions(*this);
-        }
-        catch(std::exception& ex) {
-            RAVELOG_WARN_FORMAT("env=%s, failed to generate the kinematics functions: %s", GetEnv()->GetNameId()%ex.what());
-            throw;
-        }
-        if( !!_pCurrentKinematicsFunctions ) {
-            RAVELOG_DEBUG_FORMAT("env=%s, setting custom kinematics functions for body %s", GetEnv()->GetNameId()%GetName());
-        }
-        else {
-            RAVELOG_DEBUG_FORMAT("env=%s, failed to set custom kinematics functions for body %s", GetEnv()->GetNameId()%GetName());
-        }
-    }
-    else {
-        if( !!_pCurrentKinematicsFunctions ) {
-            RAVELOG_DEBUG_FORMAT("env=%d, resetting custom kinematics functions for body %s", GetEnv()->GetId()%GetName());
-            _pCurrentKinematicsFunctions.reset();
-        }
-    }
 }
 
 } // end namespace OpenRAVE

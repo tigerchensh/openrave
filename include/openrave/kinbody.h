@@ -196,18 +196,6 @@ public:
 
 typedef boost::shared_ptr<KinematicsFunctions> KinematicsFunctionsPtr;
 
-class OPENRAVE_API KinematicsGenerator
-{
-public:
-    virtual ~KinematicsGenerator() {
-    }
-
-    /// \brief generates kinematics functions for a body and returns the struct
-    virtual KinematicsFunctionsPtr GenerateKinematicsFunctions(const KinBody& body) = 0;
-};
-
-typedef boost::shared_ptr<KinematicsGenerator> KinematicsGeneratorPtr;
-
 
 /// \brief checks if link is enabled from vector of link enable state mask
 /// intended to be used on return value of GetLinkEnableStatesMasks()
@@ -3319,9 +3307,6 @@ private:
     /// \brief update KinBody according to new KinBodyInfo, returns false if update cannot be performed and requires InitFromInfo
     virtual UpdateFromInfoResult UpdateFromKinBodyInfo(const KinBodyInfo& info);
 
-    /// \brief Associate the kinbody's current kinematics geometry hash with a forward kinematics generator
-    virtual void SetKinematicsGenerator(KinematicsGeneratorPtr pGenerator);
-
 protected:
     /// \brief constructors declared protected so that user always goes through environment to create bodies
     KinBody(InterfaceType type, EnvironmentBasePtr penv);
@@ -3454,9 +3439,6 @@ protected:
 
     ConfigurationSpecification _spec;
     CollisionCheckerBasePtr _selfcollisionchecker; ///< optional checker to use for self-collisions
-
-    KinematicsGeneratorPtr _pKinematicsGenerator; ///< holds the generator for kinematics. KinBody calls it everytime its kinematics change
-    KinematicsFunctionsPtr _pCurrentKinematicsFunctions; ///< currently generated kinematics functions
 
     int _environmentBodyIndex; ///< \see GetEnvironmentBodyIndex
     mutable int _nUpdateStampId; ///< \see GetUpdateStamp
