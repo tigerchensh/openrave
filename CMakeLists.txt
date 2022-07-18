@@ -17,7 +17,7 @@ cmake_policy(SET CMP0002 NEW)
 cmake_policy(SET CMP0003 NEW)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14) # C++14 for std::shared_timed_mutex
+  set(CMAKE_CXX_STANDARD 17) # C++17 for std::shared_mutex
 endif()
 # Use, i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH  FALSE)
@@ -82,6 +82,8 @@ endif()
 
 if (OPT_STATIC_PLUGINS)
   message(STATUS "statically compiling in plugins.")
+  set(OPT_STATIC ON)
+  set(OPT_PLUGINS OFF)
   set(OPENRAVE_STATIC_PLUGINS 1)
 else()
   set(OPENRAVE_STATIC_PLUGINS 0)
