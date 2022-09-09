@@ -22,6 +22,8 @@
 
 class IVShMemInterface final : public OpenRAVE::CollisionCheckerBase {
 public:
+    static constexpr char* ModuleName = "ivshmem";
+
     IVShMemInterface(OpenRAVE::EnvironmentBasePtr penv);
     IVShMemInterface(const IVShMemInterface&) = delete;
     ~IVShMemInterface() override;
@@ -105,6 +107,8 @@ public:
     /// \param[out] report [optional] collision report to be filled with data about the collision.
     bool CheckStandaloneSelfCollision(OpenRAVE::KinBody::LinkConstPtr plink, OpenRAVE::CollisionReportPtr report = OpenRAVE::CollisionReportPtr()) override;
 
+private:
+    int _options; // CollisionOptions enum
 };
 
 #endif // OPENRAVE_IVSHMEM_INTERFACE_HPP

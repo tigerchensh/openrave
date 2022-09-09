@@ -15,8 +15,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <errno.h>
+#include <endian.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -30,7 +32,12 @@
 
 #include "ivshmem_server.hpp"
 
+#include <openrave/config.h>
 #include <openrave/logging.h>
+
+#ifndef IVSHMEM_PROTOCOL_VERSION
+#define IVSHMEM_PROTOCOL_VERSION 0
+#endif // IVSHMEM_PROTOCOL_VERSION
 
 const std::string IVShMemServer::_shmem_path = "ivshmem";
 const std::string IVShMemServer::_sock_path = "/tmp/ivshmem_socket";
@@ -38,6 +45,7 @@ const std::string IVShMemServer::_sock_path = "/tmp/ivshmem_socket";
 IVShMemServer::IVShMemServer()
     : _mmap(nullptr)
     , _stop(false)
+    , _sock_fd(-1)
     , _shmem_size(1024 * 1024)
     , _shmem_fd(::shm_open(_shmem_path.c_str(), O_RDWR | O_CREAT, S_IRWXU)) {
 
@@ -47,29 +55,26 @@ IVShMemServer::IVShMemServer()
     if (_mmap == MAP_FAILED) {
         throw std::runtime_error("Failed to map memory of ivshmem.");
     }
-
-    _thread = std::thread(std::bind(&IVShMemServer::_Thread, this));
 }
 
 IVShMemServer::~IVShMemServer() {
     _stop = true;
-    _thread.join();
     ::munmap(_mmap, _shmem_size);
     ::shm_unlink(_shmem_path.c_str());
     ::close(_shmem_fd);
 }
 
-void IVShMemServer::_Thread() try {
+void IVShMemServer::Thread() try {
     // Create listening socket for interrupts
     struct sockaddr_un local;
-    int sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock_fd == -1) {
+    _sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (_sock_fd == -1) {
         throw std::runtime_error("Failed to create socket at " + _sock_path);
     }
     ::strncpy(local.sun_path, _sock_path.c_str(), sizeof(local.sun_path));
     ::unlink(local.sun_path);
     int len = ::strlen(local.sun_path) + sizeof(local.sun_family);
-    if (::bind(sock_fd, (struct sockaddr*)&local, len) == -1) {
+    if (::bind(_sock_fd, (struct sockaddr*)&local, len) == -1) {
         throw std::runtime_error("Failed to bind socket to address.");
     }
 
@@ -78,8 +83,8 @@ void IVShMemServer::_Thread() try {
     int ep_fd = ::epoll_create(MAX_EPOLL_EVENTS);
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
-    ev.data.fd = sock_fd;
-    if (::epoll_ctl(ep_fd, EPOLL_CTL_ADD, sock_fd, &ev) == -1) {
+    ev.data.fd = _sock_fd;
+    if (::epoll_ctl(ep_fd, EPOLL_CTL_ADD, _sock_fd, &ev) == -1) {
         throw std::runtime_error("Failed to register epoll event.");
     }
     ::epoll_event events[MAX_EPOLL_EVENTS];
@@ -96,33 +101,90 @@ void IVShMemServer::_Thread() try {
         }
         for (int i = 0; i < num_fds; ++i) {
             int fd = events[i].data.fd;
-            if (fd == sock_fd) {
+            if (fd == _sock_fd) {
                 // Event on the socket fd, there's a new guest.
-                struct sockaddr_un remote;
-                socklen_t t = sizeof(remote);
-                int vm_sock = ::accept(sock_fd, (struct sockaddr*)&remote, &t);
-                if (vm_sock == -1) {
-                    RAVELOG_WARN("Failed to accept a connection on socket.");
-                    continue;
-                }
-                IVShMemPeer peer;
-                peer.sock_fd = vm_sock;
-                peer.id = guest_id++;
-                // Send the ID of the peer to the peer.
-                ssize_t bytes = ::send(peer.sock_fd, &peer.id, sizeof(peer.id), 0);
-                if (bytes != sizeof(peer.id)) {
-                    RAVELOG_WARN("Failed to send ID to peer.");
-                }
-
-                // Send control commands to peer.
-                struct cmsghdr* cmsg;
-                char control[CMSG_SPACE(sizeof(int))];
-                struct iovec iov[1];
-                struct msghdr msg = {0, 0, iov, 1, control, sizeof(control), 0};
-
+                _NewGuest(guest_id++);
             }
         }
     }
 } catch (const std::exception& e) {
-    RAVELOG_ERROR("%s", e.what());
+    ::close(_sock_fd);
+    _sock_fd = -1;
+    RAVELOG_ERROR("Exception caught: %s", e.what());
+}
+
+
+void IVShMemServer::_NewGuest(int64_t guest_id) {
+    _peers.emplace_back(IVShMemPeer{});
+    auto& peer = _peers.back();
+    peer.id = guest_id;
+
+    struct sockaddr_un remote;
+    socklen_t t = sizeof(remote);
+    peer.sock_fd = ::accept(_sock_fd, reinterpret_cast<struct sockaddr*>(&remote), &t);
+    if (peer.sock_fd == -1) {
+        _peers.pop_back();
+        throw std::runtime_error("Failed to accept connection on socket.");
+    }
+    for (int i = 0; i < IVSHMEM_VECTOR_COUNT; ++i) {
+        peer.vectors[i] = ::eventfd(0, 0);
+        if (peer.vectors[i] == -1) {
+            RAVELOG_WARN("Failed to create eventfd.");
+        }
+    }
+    _ShMem_SendMsg(peer.sock_fd, IVSHMEM_PROTOCOL_VERSION, -1);
+    _ShMem_SendMsg(peer.sock_fd, peer.id, -1);
+    _ShMem_SendMsg(peer.sock_fd, peer.id, _shmem_fd);
+
+    // Advertise new peer to all peers, including itself.
+    for (size_t i = 0; i < _peers.size(); ++i) {
+        auto& otherpeer = _peers[i];
+        for (int j = 0; j < IVSHMEM_VECTOR_COUNT; ++j) {
+            _ShMem_SendMsg(otherpeer.sock_fd, peer.id, otherpeer.vectors[j]);
+        }
+    }
+
+    // Advertise all other peers to the new peer, excluding itself.
+    for (size_t i = 0; i < _peers.size() - 1; ++i) {
+        auto& otherpeer = _peers[i];
+        for (int j = 0; j < IVSHMEM_VECTOR_COUNT; ++j) {
+            _ShMem_SendMsg(peer.sock_fd, peer.id, otherpeer.vectors[j]);
+        }
+    }
+
+    RAVELOG_INFO("Added new peer ID = %d", peer.id);
+}
+
+int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int fd) noexcept {
+    peer_id = htole64(peer_id);
+
+    struct iovec iov;
+    iov.iov_base = &peer_id;
+    iov.iov_len = sizeof(peer_id);
+
+    struct msghdr msg;
+    ::memset(&msg, 0, sizeof(msg));
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    /* if fd is specified, add it in a cmsg */
+    if (fd >= 0) {
+        union {
+            struct cmsghdr cmsg;
+            char control[CMSG_SPACE(sizeof(int))];
+        } msg_control;
+        ::memset(&msg_control, 0, sizeof(msg_control));
+
+        struct cmsghdr *cmsg;
+        msg.msg_control = &msg_control;
+        msg.msg_controllen = sizeof(msg_control);
+        cmsg = CMSG_FIRSTHDR(&msg);
+        cmsg->cmsg_level = SOL_SOCKET;
+        cmsg->cmsg_type = SCM_RIGHTS;
+        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+        ::memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
+    }
+
+    int ret = ::sendmsg(sock_fd, &msg, 0);
+    return (ret <= 0) ? -1 : 0;
 }

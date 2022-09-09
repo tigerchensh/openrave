@@ -16,15 +16,13 @@
 
 #include "ivshmem_interface.hpp"
 
-static constexpr char* MODULE_NAME = "ivshmem";
-
 OpenRAVE::InterfaceBasePtr CreateInterfaceValidated(OpenRAVE::InterfaceType type, const std::string& interfacename, std::istream& /*sinput*/, OpenRAVE::EnvironmentBasePtr penv) {
-    if( type == OpenRAVE::PT_CollisionChecker && interfacename == MODULE_NAME ) {
+    if( type == OpenRAVE::PT_CollisionChecker && interfacename == IVShMemInterface::ModuleName ) {
         return boost::make_shared<IVShMemInterface>(penv);
     }
     return OpenRAVE::InterfaceBasePtr();
 }
 
 void GetPluginAttributesValidated(OpenRAVE::PLUGININFO& info) {
-    info.interfacenames[OpenRAVE::PT_CollisionChecker].emplace_back(MODULE_NAME);
+    info.interfacenames[OpenRAVE::PT_CollisionChecker].emplace_back(IVShMemInterface::ModuleName);
 }

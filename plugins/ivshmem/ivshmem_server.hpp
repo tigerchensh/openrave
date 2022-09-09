@@ -19,7 +19,6 @@
 
 #include <atomic>
 #include <string>
-#include <thread>
 #include <vector>
 
 class IVShMemServer final {
@@ -27,12 +26,19 @@ public:
     IVShMemServer();
     ~IVShMemServer() {}
 
+    /// \brief Main thread loop function. The loop should be run in the class containing this class.
+    void Thread();
+
+    void SignalStop() noexcept { _stop = true; }
+
 private:
-    void _Thread();
-    
-    // Main loop thread
-    std::thread _thread;
-    bool _stop; // Signals the thread to stop.
+    void _NewGuest(int64_t guest_id);
+
+    /// \brief Sends the file descriptor of the shared memory to the peer.
+    static int _ShMem_SendMsg(int sock_fd, int64_t peer_id, int shmfd) noexcept;
+
+private:
+    std::atomic_bool _stop; // Signals the thread to stop.
 
     // Shared memory
     static const std::string _shmem_path;
@@ -42,12 +48,13 @@ private:
 
     // Socket for interrupts, only when emulating.
     static const std::string _sock_path;
+    int _sock_fd;
 
     static constexpr int IVSHMEM_VECTOR_COUNT = 2;
     struct IVShMemPeer final {
         int sock_fd;
         int64_t id;
-        int vectors[IVSHMEM_VECTOR_COUNT];
+        int vectors[IVSHMEM_VECTOR_COUNT]; // File descriptors
     };
     std::vector<IVShMemPeer> _peers;
 };
