@@ -49,10 +49,9 @@ public:
         return _fd;
     }
 
-    operator bool() const noexcept {
-        return (_fd > -1);
-    }
-
+    operator bool() const noexcept { return (_fd > -1); }
+    bool operator==(const FileDescriptor& other) const noexcept { return _fd == other._fd; }
+    bool operator==(int fd) const noexcept { return _fd == fd; }
     FileDescriptor& operator=(FileDescriptor&& other) noexcept = default;
 
 private:

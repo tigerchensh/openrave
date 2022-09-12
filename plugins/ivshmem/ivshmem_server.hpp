@@ -49,10 +49,18 @@ private:
     // Initializes the shared memory
     void _InitSharedMemory();
 
+    // Add a new guest to the peers list
     void _NewGuest(int64_t guest_id);
 
-    /// \brief Sends the file descriptor of the shared memory to the peer.
-    static int _ShMem_SendMsg(int sock_fd, int64_t peer_id, int shmfd) noexcept;
+    void _RemoveGuest(int64_t guest_id);
+
+    /// \brief Sends a signal to the peer. `message` must be a positive value if it is a control signal; otherwise it is ignored.
+    /// Usually this message is the fd of the shared memory.
+    /// If peer_id is -1, then message is broadcast.
+    /// Returns the result of ::sendmsg.
+    static int _ShMem_SendMsg(int sock_fd, int64_t peer_id, int message) noexcept;
+
+    static int _ShMem_RecvMsg(int sock_fd, int64_t& peer_id, int& message) noexcept;
 
 private:
     std::atomic_bool _stop; // Signals the thread to stop.

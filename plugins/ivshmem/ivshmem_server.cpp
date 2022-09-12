@@ -51,9 +51,6 @@ IVShMemServer::IVShMemServer()
     , _shmem_size(1024 * 1024)
     , _mmap(nullptr)
     , _sock_fd() {
-
-    _InitSocket();
-    _InitSharedMemory();
 }
 
 IVShMemServer::~IVShMemServer() {
@@ -63,6 +60,9 @@ IVShMemServer::~IVShMemServer() {
 }
 
 void IVShMemServer::Thread() try {
+    _InitSocket();
+    _InitSharedMemory();
+
     // Set up epoll
     static constexpr size_t MAX_EPOLL_EVENTS = 2;
     auto ep_fd = FileDescriptor(epoll_create, MAX_EPOLL_EVENTS);
@@ -70,25 +70,36 @@ void IVShMemServer::Thread() try {
     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
     ev.data.fd = _sock_fd.get();
     if (::epoll_ctl(ep_fd.get(), EPOLL_CTL_ADD, _sock_fd.get(), &ev) == -1) {
-        throw std::runtime_error("Failed to register epoll event.");
+        throw std::runtime_error("Failed to register epoll event: "s + strerror(errno));
     }
     ::epoll_event events[MAX_EPOLL_EVENTS];
 
     int64_t guest_id = 0;
-
-    // Some buffers as scratch space
-    static constexpr size_t BUFFER_SIZE = 1024 * 8;
-    std::array<char, BUFFER_SIZE> buffer;
     while (!_stop) {
         int num_fds = ::epoll_wait(ep_fd.get(), events, MAX_EPOLL_EVENTS, 0);
         if (num_fds == 0) {
-            throw std::runtime_error("Error caught in epoll_wait.");
+            throw std::runtime_error("Error caught in epoll_wait: "s + strerror(errno));
         }
         for (int i = 0; i < num_fds; ++i) {
             int fd = events[i].data.fd;
+            // Event on the socket fd, there's a new guest.
             if (fd == _sock_fd.get()) {
-                // Event on the socket fd, there's a new guest.
                 _NewGuest(guest_id++);
+                // Add the guest socket fd to epoll.
+                struct epoll_event guestev;
+                guestev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
+                guestev.data.fd = _peers.back().sock_fd.get();
+                if (::epoll_ctl(ep_fd.get(), EPOLL_CTL_ADD, guestev.data.fd, &guestev) == -1) {
+                    throw std::runtime_error("Failed to register epoll event: "s + strerror(errno));
+                }
+                continue;
+            }
+            // Event on guest sockets, message from guests.
+            for (const auto& peer : _peers) {
+                if (peer.sock_fd == fd) {
+
+                    break;
+                }
             }
         }
     }
@@ -128,14 +139,13 @@ void IVShMemServer::_InitSharedMemory() {
 }
 
 void IVShMemServer::_NewGuest(int64_t guest_id) {
-    _peers.emplace_back(IVShMemPeer{});
-    auto& peer = _peers.back();
+    IVShMemPeer peer;
     peer.id = guest_id;
 
     struct sockaddr_un remote;
     socklen_t t = sizeof(remote);
     peer.sock_fd = FileDescriptor(::accept, _sock_fd.get(), reinterpret_cast<struct sockaddr*>(&remote), &t);
-    if (peer.sock_fd.get() == -1) {
+    if (!peer.sock_fd) {
         _peers.pop_back();
         throw std::runtime_error("Failed to accept connection on socket: "s + strerror(errno));
     }
@@ -161,21 +171,20 @@ void IVShMemServer::_NewGuest(int64_t guest_id) {
     for (size_t i = 0; i < _peers.size() - 1; ++i) {
         auto& otherpeer = _peers[i];
         for (int j = 0; j < IVSHMEM_VECTOR_COUNT; ++j) {
-            _ShMem_SendMsg(peer.sock_fd, peer.id, otherpeer.vectors[j]);
+            _ShMem_SendMsg(peer.sock_fd.get(), peer.id, otherpeer.vectors[j]);
         }
     }
 
     RAVELOG_INFO("Added new peer ID = %d", peer.id);
+    _peers.emplace_back(std::move(peer));
 }
 
-int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int fd) noexcept {
+int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int message) noexcept {
     peer_id = htole64(peer_id);
-
     struct iovec iov = {
         .iov_base = &peer_id,
         .iov_len = sizeof(peer_id),
     };
-
     struct msghdr msg = {
         .msg_name = NULL,
         .msg_namelen = 0,
@@ -186,8 +195,8 @@ int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int fd) noexcept
         .msg_flags = 0,
     };
 
-    /* if fd is specified, add it in a cmsg */
-    if (fd >= 0) {
+    // If `message` is a value greater than 0, then add it as control content
+    if (message >= 0) {
         char control[CMSG_SPACE(sizeof(int))];
         ::memset(control, 0, sizeof(control));
         msg.msg_control = control;
@@ -197,8 +206,51 @@ int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int fd) noexcept
         cmsg->cmsg_len = CMSG_LEN(sizeof(int));
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
-        ::memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
+        ::memcpy(CMSG_DATA(cmsg), &message, sizeof(message));
     }
 
     return ::sendmsg(sock_fd, &msg, 0);
+}
+
+int IVShMemServer::_ShMem_RecvMsg(int sock_fd, int64_t& peer_id, int& message) noexcept {
+    char control[CMSG_SPACE(sizeof(message))];
+    struct iovec iov = {
+        .iov_base = &peer_id,
+        .iov_len = sizeof(peer_id),
+    };
+    struct msghdr msg = {
+        .msg_name = NULL,
+        .msg_namelen = 0,
+        .msg_iov = &iov,
+        .msg_iovlen = 1,
+        .msg_control = control,
+        .msg_controllen = sizeof(control),
+        .msg_flags = 0,
+    };
+    ssize_t len = 0;
+    do {
+        len = ::recvmsg(sock_fd, &msg, 0);
+    } while (len == -1 && (errno == EINTR || errno == EAGAIN));
+    if (len == -1) {
+        return -1; // Some error on socket
+    }
+    
+    // If controllen is less than size of cmsghdr, then message is peer_id.
+    if (msg.msg_controllen < sizeof(struct cmsghdr)) {
+        message = peer_id;
+        return 0;
+    }
+
+    // Search messages for content, though we are not really expecting guests to send anything
+    for (struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        if (cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_RIGHTS) {
+            if (cmsg->cmsg_len != sizeof(control)) {
+                continue;
+            }
+        }
+        ::memcpy(&message, CMSG_DATA(cmsg), sizeof(message));
+        return 0;
+    }
+
+    return -1; // Nothing with content found, error
 }
