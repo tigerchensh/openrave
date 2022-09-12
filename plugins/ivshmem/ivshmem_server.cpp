@@ -44,11 +44,11 @@ const std::string IVShMemServer::_shmem_path = "ivshmem";
 const std::string IVShMemServer::_sock_path = "/tmp/ivshmem_socket";
 
 IVShMemServer::IVShMemServer()
-    : _mmap(nullptr)
-    , _stop(false)
-    , _sock_fd(-1)
+    : _stop(false)
+    , _shmem_fd(::shm_open(_shmem_path.c_str(), O_RDWR | O_CREAT, S_IRWXU))
     , _shmem_size(1024 * 1024)
-    , _shmem_fd(::shm_open(_shmem_path.c_str(), O_RDWR | O_CREAT, S_IRWXU)) {
+    , _mmap(nullptr)
+    , _sock_fd(-1) {
 
     // Prepare the shared memory region.
     ::ftruncate(_shmem_fd, _shmem_size);
@@ -159,33 +159,34 @@ void IVShMemServer::_NewGuest(int64_t guest_id) {
 int IVShMemServer::_ShMem_SendMsg(int sock_fd, int64_t peer_id, int fd) noexcept {
     peer_id = htole64(peer_id);
 
-    struct iovec iov;
-    iov.iov_base = &peer_id;
-    iov.iov_len = sizeof(peer_id);
+    struct iovec iov = {
+        .iov_base = &peer_id,
+        .iov_len = sizeof(peer_id),
+    };
 
-    struct msghdr msg;
-    ::memset(&msg, 0, sizeof(msg));
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
+    struct msghdr msg = {
+        .msg_name = NULL,
+        .msg_namelen = 0,
+        .msg_iov = &iov,
+        .msg_iovlen = 1,
+        .msg_control = NULL,
+        .msg_controllen = 0,
+        .msg_flags = 0,
+    };
 
     /* if fd is specified, add it in a cmsg */
     if (fd >= 0) {
-        union {
-            struct cmsghdr cmsg;
-            char control[CMSG_SPACE(sizeof(int))];
-        } msg_control;
-        ::memset(&msg_control, 0, sizeof(msg_control));
+        char control[CMSG_SPACE(sizeof(int))];
+        ::memset(control, 0, sizeof(control));
+        msg.msg_control = control;
+        msg.msg_controllen = sizeof(control);
 
-        struct cmsghdr *cmsg;
-        msg.msg_control = &msg_control;
-        msg.msg_controllen = sizeof(msg_control);
-        cmsg = CMSG_FIRSTHDR(&msg);
+        struct cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
-        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
         ::memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
     }
 
-    int ret = ::sendmsg(sock_fd, &msg, 0);
-    return (ret <= 0) ? -1 : 0;
+    return ::sendmsg(sock_fd, &msg, 0);
 }

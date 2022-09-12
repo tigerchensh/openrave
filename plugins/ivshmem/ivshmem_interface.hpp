@@ -19,7 +19,6 @@
 
 #include <string>
 
-//#include <openrave/collisionchecker.h>
 #include <openrave/openrave.h>
 
 class IVShMemInterface final : public OpenRAVE::CollisionCheckerBase {

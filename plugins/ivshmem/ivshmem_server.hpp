@@ -29,7 +29,7 @@ public:
     /// \brief Main thread loop function. The loop should be run in the class containing this class.
     void Thread();
 
-    void SignalStop() noexcept { _stop = true; }
+    void Halt() noexcept { _stop = true; }
 
 private:
     void _NewGuest(int64_t guest_id);
