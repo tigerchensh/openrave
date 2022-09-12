@@ -21,9 +21,12 @@
 
 // RAII file descriptors that closes itself upon scope exit.
 // This is useful to avoid file descriptor leaks.
-// Currently, only the closing function `close(2)` is supported.
+// Currently, only file descriptors that close with `close(2)` is supported.
 struct FileDescriptor final {
 public:
+    // Default constructor creates a FileDescriptor with an invalid value (-1)
+    FileDescriptor() noexcept : _fd(-1) {}
+
     // Transfers ownership of the dile descriptor to this object.
     explicit FileDescriptor(int fd) noexcept : _fd(fd) {}
 
@@ -49,6 +52,8 @@ public:
     operator bool() const noexcept {
         return (_fd > -1);
     }
+
+    FileDescriptor& operator=(FileDescriptor&& other) noexcept = default;
 
 private:
     int _fd;

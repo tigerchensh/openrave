@@ -5,6 +5,8 @@ set(ivshmem_src
     ivshmem_server.hpp
     ivshmem_interface.cpp
     ivshmem_interface.hpp
+
+    fd.hpp
 )
 
 add_library(ivshmem SHARED ${ivshmem_src})

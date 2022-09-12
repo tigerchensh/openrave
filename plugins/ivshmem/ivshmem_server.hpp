@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "fd.hpp"
+
 class IVShMemServer final {
 public:
     IVShMemServer();
@@ -40,6 +42,13 @@ public:
     }
 
 private:
+    // Initializes the socket that listens for interrupts.
+    // Throws exceptions if the socket can't be bound to a path.
+    void _InitSocket();
+
+    // Initializes the shared memory
+    void _InitSharedMemory();
+
     void _NewGuest(int64_t guest_id);
 
     /// \brief Sends the file descriptor of the shared memory to the peer.
@@ -50,17 +59,17 @@ private:
 
     // Shared memory
     static const std::string _shmem_path;
-    int _shmem_fd;
+    FileDescriptor _shmem_fd;
     size_t _shmem_size;
     void* _mmap;
 
     // Socket for interrupts, only when emulating.
     static const std::string _sock_path;
-    int _sock_fd;
+    FileDescriptor _sock_fd;
 
     static constexpr int IVSHMEM_VECTOR_COUNT = 2;
     struct IVShMemPeer final {
-        int sock_fd;
+        FileDescriptor sock_fd;
         int64_t id;
         int vectors[IVSHMEM_VECTOR_COUNT]; // File descriptors
     };

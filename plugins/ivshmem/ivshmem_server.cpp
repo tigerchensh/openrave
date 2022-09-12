@@ -40,52 +40,36 @@
 #define IVSHMEM_PROTOCOL_VERSION 0
 #endif // IVSHMEM_PROTOCOL_VERSION
 
+using namespace std::literals;
+
 const std::string IVShMemServer::_shmem_path = "ivshmem";
 const std::string IVShMemServer::_sock_path = "/tmp/ivshmem_socket";
 
 IVShMemServer::IVShMemServer()
     : _stop(false)
-    , _shmem_fd(::shm_open(_shmem_path.c_str(), O_RDWR | O_CREAT, S_IRWXU))
+    , _shmem_fd()
     , _shmem_size(1024 * 1024)
     , _mmap(nullptr)
-    , _sock_fd(-1) {
+    , _sock_fd() {
 
-    // Prepare the shared memory region.
-    ::ftruncate(_shmem_fd, _shmem_size);
-    _mmap = ::mmap(NULL, _shmem_size, PROT_READ | PROT_WRITE, MAP_SHARED, _shmem_fd, 0);
-    if (_mmap == MAP_FAILED) {
-        throw std::runtime_error("Failed to map memory of ivshmem.");
-    }
+    _InitSocket();
+    _InitSharedMemory();
 }
 
 IVShMemServer::~IVShMemServer() {
     _stop = true;
     ::munmap(_mmap, _shmem_size);
     ::shm_unlink(_shmem_path.c_str());
-    ::close(_shmem_fd);
 }
 
 void IVShMemServer::Thread() try {
-    // Create listening socket for interrupts
-    struct sockaddr_un local;
-    _sock_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-    if (_sock_fd == -1) {
-        throw std::runtime_error("Failed to create socket at " + _sock_path);
-    }
-    ::strncpy(local.sun_path, _sock_path.c_str(), sizeof(local.sun_path));
-    ::unlink(local.sun_path);
-    int len = ::strlen(local.sun_path) + sizeof(local.sun_family);
-    if (::bind(_sock_fd, (struct sockaddr*)&local, len) == -1) {
-        throw std::runtime_error("Failed to bind socket to address.");
-    }
-
     // Set up epoll
     static constexpr size_t MAX_EPOLL_EVENTS = 2;
-    int ep_fd = ::epoll_create(MAX_EPOLL_EVENTS);
+    auto ep_fd = FileDescriptor(epoll_create, MAX_EPOLL_EVENTS);
     struct epoll_event ev;
     ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
-    ev.data.fd = _sock_fd;
-    if (::epoll_ctl(ep_fd, EPOLL_CTL_ADD, _sock_fd, &ev) == -1) {
+    ev.data.fd = _sock_fd.get();
+    if (::epoll_ctl(ep_fd.get(), EPOLL_CTL_ADD, _sock_fd.get(), &ev) == -1) {
         throw std::runtime_error("Failed to register epoll event.");
     }
     ::epoll_event events[MAX_EPOLL_EVENTS];
@@ -96,24 +80,52 @@ void IVShMemServer::Thread() try {
     static constexpr size_t BUFFER_SIZE = 1024 * 8;
     std::array<char, BUFFER_SIZE> buffer;
     while (!_stop) {
-        int num_fds = ::epoll_wait(ep_fd, events, MAX_EPOLL_EVENTS, 0);
+        int num_fds = ::epoll_wait(ep_fd.get(), events, MAX_EPOLL_EVENTS, 0);
         if (num_fds == 0) {
             throw std::runtime_error("Error caught in epoll_wait.");
         }
         for (int i = 0; i < num_fds; ++i) {
             int fd = events[i].data.fd;
-            if (fd == _sock_fd) {
+            if (fd == _sock_fd.get()) {
                 // Event on the socket fd, there's a new guest.
                 _NewGuest(guest_id++);
             }
         }
     }
 } catch (const std::exception& e) {
-    ::close(_sock_fd);
-    _sock_fd = -1;
     RAVELOG_ERROR("Exception caught: %s", e.what());
 }
 
+void IVShMemServer::_InitSocket() {
+    _sock_fd = FileDescriptor(socket, AF_UNIX, SOCK_STREAM, 0);
+    if (!_sock_fd) {
+        throw std::runtime_error("Failed to create unix socket: "s + strerror(errno));
+    }
+
+    struct sockaddr_un local;
+    local.sun_family = AF_UNIX;
+    ::strncpy(local.sun_path, _sock_path.c_str(), sizeof(local.sun_path));
+    int len = ::strlen(local.sun_path) + sizeof(local.sun_family);
+    if (::bind(_sock_fd.get(), (struct sockaddr*)&local, len) == -1) {
+        throw std::runtime_error("Failed to bind socket to address: "s + strerror(errno));
+    }
+
+    if (::listen(_sock_fd.get(), 4) == -1) {
+        throw std::runtime_error("Failed to listen on socket: "s + strerror(errno));
+    }
+}
+
+void IVShMemServer::_InitSharedMemory() {
+    _shmem_fd = FileDescriptor(shm_open, _shmem_path.c_str(), O_RDWR | O_CREAT, S_IRWXU);
+
+    // Prepare the shared memory region.
+    ::ftruncate(_shmem_fd.get(), _shmem_size);
+
+    _mmap = ::mmap(NULL, _shmem_size, PROT_READ | PROT_WRITE, MAP_SHARED, _shmem_fd.get(), 0);
+    if (_mmap == MAP_FAILED) {
+        throw std::runtime_error("Failed to map memory of ivshmem: "s + strerror(errno));
+    }
+}
 
 void IVShMemServer::_NewGuest(int64_t guest_id) {
     _peers.emplace_back(IVShMemPeer{});
@@ -122,26 +134,26 @@ void IVShMemServer::_NewGuest(int64_t guest_id) {
 
     struct sockaddr_un remote;
     socklen_t t = sizeof(remote);
-    peer.sock_fd = ::accept(_sock_fd, reinterpret_cast<struct sockaddr*>(&remote), &t);
-    if (peer.sock_fd == -1) {
+    peer.sock_fd = FileDescriptor(::accept, _sock_fd.get(), reinterpret_cast<struct sockaddr*>(&remote), &t);
+    if (peer.sock_fd.get() == -1) {
         _peers.pop_back();
-        throw std::runtime_error("Failed to accept connection on socket.");
+        throw std::runtime_error("Failed to accept connection on socket: "s + strerror(errno));
     }
     for (int i = 0; i < IVSHMEM_VECTOR_COUNT; ++i) {
         peer.vectors[i] = ::eventfd(0, 0);
         if (peer.vectors[i] == -1) {
-            RAVELOG_WARN("Failed to create eventfd.");
+            RAVELOG_WARN("Failed to create eventfd: %s", strerror(errno));
         }
     }
-    _ShMem_SendMsg(peer.sock_fd, IVSHMEM_PROTOCOL_VERSION, -1);
-    _ShMem_SendMsg(peer.sock_fd, peer.id, -1);
-    _ShMem_SendMsg(peer.sock_fd, peer.id, _shmem_fd);
+    _ShMem_SendMsg(peer.sock_fd.get(), IVSHMEM_PROTOCOL_VERSION, -1);
+    _ShMem_SendMsg(peer.sock_fd.get(), peer.id, -1);
+    _ShMem_SendMsg(peer.sock_fd.get(), peer.id, _shmem_fd);
 
     // Advertise new peer to all peers, including itself.
     for (size_t i = 0; i < _peers.size(); ++i) {
         auto& otherpeer = _peers[i];
         for (int j = 0; j < IVSHMEM_VECTOR_COUNT; ++j) {
-            _ShMem_SendMsg(otherpeer.sock_fd, peer.id, otherpeer.vectors[j]);
+            _ShMem_SendMsg(otherpeer.sock_fd.get(), peer.id, otherpeer.vectors[j]);
         }
     }
 
