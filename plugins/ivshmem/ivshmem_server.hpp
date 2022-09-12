@@ -29,7 +29,15 @@ public:
     /// \brief Main thread loop function. The loop should be run in the class containing this class.
     void Thread();
 
-    void Halt() noexcept { _stop = true; }
+    void Stop() noexcept { _stop = true; }
+
+    /// This object is in an invalid state if:
+    /// - Shared memory file descriptor is invalid(-1), or
+    /// - Interrupt socket is invalid(-1), or
+    /// - It has been stopped.
+    operator bool() const noexcept {
+        return !(_stop || (_shmem_fd < 0) || (_sock_fd < 0));
+    }
 
 private:
     void _NewGuest(int64_t guest_id);
