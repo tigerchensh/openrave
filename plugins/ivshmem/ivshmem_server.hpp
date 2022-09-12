@@ -24,7 +24,7 @@
 class IVShMemServer final {
 public:
     IVShMemServer();
-    ~IVShMemServer() {}
+    ~IVShMemServer();
 
     /// \brief Main thread loop function. The loop should be run in the class containing this class.
     void Thread();

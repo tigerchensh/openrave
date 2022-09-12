@@ -17,8 +17,10 @@
 #ifndef OPENRAVE_IVSHMEM_INTERFACE_HPP
 #define OPENRAVE_IVSHMEM_INTERFACE_HPP
 
-#include <openrave/plugin.h>
 #include <string>
+
+//#include <openrave/collisionchecker.h>
+#include <openrave/openrave.h>
 
 class IVShMemInterface final : public OpenRAVE::CollisionCheckerBase {
 public:

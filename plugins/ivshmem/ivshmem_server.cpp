@@ -27,13 +27,14 @@
 #include <unistd.h>
 
 #include <array>
+#include <cstdarg>
 #include <functional>
 #include <stdexcept>
 
-#include "ivshmem_server.hpp"
-
 #include <openrave/config.h>
 #include <openrave/logging.h>
+
+#include "ivshmem_server.hpp"
 
 #ifndef IVSHMEM_PROTOCOL_VERSION
 #define IVSHMEM_PROTOCOL_VERSION 0
