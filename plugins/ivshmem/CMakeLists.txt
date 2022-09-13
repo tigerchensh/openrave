@@ -7,6 +7,8 @@ set(ivshmem_src
     ivshmem_interface.hpp
 
     fd.hpp
+
+    fclspace.cpp
 )
 
 add_library(ivshmem SHARED ${ivshmem_src})

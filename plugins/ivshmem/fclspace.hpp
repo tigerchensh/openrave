@@ -3,6 +3,7 @@
 #define OPENRAVE_FCL_SPACE
 
 #include <boost/shared_ptr.hpp>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -19,15 +20,14 @@ namespace fclrave {
 //typedef boost::weak_ptr<const KinBody> KinBodyConstWeakPtr;
 //typedef KinBody::GeometryConstPtr GeometryConstPtr;
 typedef boost::weak_ptr<OpenRAVE::KinBody::Geometry> GeometryWeakPtr;
-using OpenRAVE::ORE_Assert;//
 
 // Warning : this is the only place where we use std::shared_ptr (for compatibility with fcl)
 typedef std::shared_ptr<fcl::CollisionGeometry> CollisionGeometryPtr;
-typedef boost::shared_ptr<fcl::CollisionObject> CollisionObjectPtr;
-typedef boost::function<CollisionGeometryPtr (std::vector<fcl::Vec3f> const &points, std::vector<fcl::Triangle> const &triangles) > MeshFactory;
+typedef std::shared_ptr<fcl::CollisionObject> CollisionObjectPtr;
 typedef std::vector<fcl::CollisionObject *> CollisionGroup;
-typedef boost::shared_ptr<CollisionGroup> CollisionGroupPtr;
 typedef std::pair<OpenRAVE::Transform, CollisionObjectPtr> TransformCollisionPair;
+
+using MeshFactory = std::function<std::shared_ptr<fcl::CollisionGeometry>(const OpenRAVE::TriMesh&)>;
 
 /// \brief fcl spaces manages the individual collision objects and sets up callbacks to track their changes.
 ///
@@ -46,7 +46,7 @@ public:
 
             FCLGeometryInfo(OpenRAVE::KinBody::GeometryPtr pgeom);
 
-            virtual ~FCLGeometryInfo() {}
+            ~FCLGeometryInfo();
 
             OpenRAVE::KinBody::GeometryPtr GetGeometry();
 
@@ -164,7 +164,7 @@ private:
     static TransformCollisionPair _CreateTransformCollisionPairFromOBB(fcl::OBB const &bv);
 
     // what about the tests on non-zero size (eg. box extents) ?
-    static CollisionGeometryPtr _CreateFCLGeomFromGeometryInfo(const OpenRAVE::KinBody::GeometryInfo &info);
+    std::shared_ptr<fcl::CollisionGeometry> _CreateFCLGeomFromGeometryInfo(const OpenRAVE::KinBody::GeometryInfo &info);
 
     /// \brief pass in info.GetBody() as a reference to avoid dereferencing the weak pointer in FCLKinBodyInfo
     void _Synchronize(FCLKinBodyInfo& info, const OpenRAVE::KinBody& body);

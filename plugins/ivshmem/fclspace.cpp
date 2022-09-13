@@ -71,7 +71,7 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
 
     pinfo->vlinks.reserve(pbody->GetLinks().size());
     for (const auto& plink : pbody->GetLinks()) {
-        boost::shared_ptr<FCLKinBodyInfo::LinkInfo> linkinfo(new FCLKinBodyInfo::LinkInfo(plink));
+        auto linkinfo = boost::make_shared<FCLKinBodyInfo::LinkInfo>(plink);
 
         fcl::AABB enclosingBV;
 
@@ -80,7 +80,7 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
             const std::vector<KinBody::GeometryInfoPtr>& vgeometryinfos = plink->GetGeometriesFromGroup(pinfo->_geometrygroup);
             for (const auto& pgeominfo : vgeometryinfos) {
                 const KinBody::GeometryInfo& geominfo = *pgeominfo;
-                const CollisionGeometryPtr pfclgeom = _CreateFCLGeomFromGeometryInfo(geominfo);
+                const auto pfclgeom = _CreateFCLGeomFromGeometryInfo(geominfo);
 
                 if( !pfclgeom ) {
                     continue;
@@ -88,9 +88,10 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
                 pfclgeom->setUserData(nullptr);
 
                 // We do not set the transformation here and leave it to _Synchronize
-                CollisionObjectPtr pfclcoll = boost::make_shared<fcl::CollisionObject>(pfclgeom);
+                //CollisionObjectPtr pfclcoll = boost::make_shared<fcl::CollisionObject>(*pfclgeom.get());
+                auto pfclcoll = std::make_shared<fcl::CollisionObject>(pfclgeom);
                 pfclcoll->setUserData(linkinfo.get());
-                linkinfo->vgeoms.push_back(std::make_pair(geominfo.GetTransform(), pfclcoll));
+                linkinfo->vgeoms.push_back(std::make_pair(geominfo.GetTransform(), std::move(pfclcoll)));
 
                 KinBody::Link::Geometry _tmpgeometry(boost::shared_ptr<KinBody::Link>(), geominfo);
                 if( pgeominfo == vgeometryinfos.front() ) {
@@ -105,7 +106,7 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
             const std::vector<KinBody::Link::GeometryPtr> & vgeometries = plink->GetGeometries();
             for (const auto& pgeom : vgeometries) {
                 const KinBody::GeometryInfo& geominfo = pgeom->GetInfo();
-                const CollisionGeometryPtr pfclgeom = _CreateFCLGeomFromGeometryInfo(geominfo);
+                const auto pfclgeom = _CreateFCLGeomFromGeometryInfo(geominfo);
 
                 if( !pfclgeom ) {
                     continue;
@@ -117,10 +118,9 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
                 linkinfo->vgeominfos.push_back(pfclgeominfo);
 
                 // We do not set the transformation here and leave it to _Synchronize
-                CollisionObjectPtr pfclcoll = boost::make_shared<fcl::CollisionObject>(pfclgeom);
+                auto pfclcoll = std::make_shared<fcl::CollisionObject>(pfclgeom);
                 pfclcoll->setUserData(linkinfo.get());
-
-                linkinfo->vgeoms.emplace_back(std::make_pair(geominfo.GetTransform(), pfclcoll));
+                linkinfo->vgeoms.emplace_back(std::make_pair(geominfo.GetTransform(), std::move(pfclcoll)));
 
                 KinBody::Link::Geometry _tmpgeometry(boost::shared_ptr<KinBody::Link>(), geominfo);
                 if( pgeom == vgeometries.front() ) {
@@ -138,7 +138,7 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
         else {
             CollisionGeometryPtr pfclgeomBV = std::make_shared<fcl::Box>(enclosingBV.max_ - enclosingBV.min_);
             pfclgeomBV->setUserData(nullptr);
-            CollisionObjectPtr pfclcollBV = boost::make_shared<fcl::CollisionObject>(pfclgeomBV);
+            auto pfclcollBV = std::make_shared<fcl::CollisionObject>(pfclgeomBV);
             Transform trans(Vector(1,0,0,0), ConvertVector(0.5 * (enclosingBV.min_ + enclosingBV.max_)));
             pfclcollBV->setUserData(linkinfo.get());
             linkinfo->linkBV = std::make_pair(trans, pfclcollBV);
@@ -150,7 +150,7 @@ FCLSpace::FCLKinBodyInfoPtr FCLSpace::InitKinBody(KinBodyConstPtr pbody, FCLKinB
     }
 
     const int envId = pbody->GetEnvironmentBodyIndex();
-    const int maxEnvId = _penv->GetMaxEnvironmentBodyIndex();
+    //const int maxEnvId = _penv->GetMaxEnvironmentBodyIndex();
     BOOST_ASSERT(envId != 0);
     if( bSetToCurrentPInfo ) {
         _currentpinfo.at(envId) = pinfo;
@@ -210,7 +210,7 @@ bool FCLSpace::SetBodyGeometryGroup(KinBodyConstPtr pbody, const std::string& gr
 
     poldinfo->nGeometryUpdateStamp += 1;
 
-    const int maxBodyIndex = _penv->GetMaxEnvironmentBodyIndex();
+    //const int maxBodyIndex = _penv->GetMaxEnvironmentBodyIndex();
 
     const int bodyIndex = body.GetEnvironmentBodyIndex();
     OPENRAVE_ASSERT_OP_FORMAT(bodyIndex, !=, 0, "env=%s, body %s", _penv->GetNameId()%body.GetName(), OpenRAVE::ORE_InvalidState);
@@ -266,13 +266,13 @@ void FCLSpace::SetBVHRepresentation(std::string const &type)
         _meshFactory = &ConvertMeshToFCL<fcl::OBBRSS>;
     } else if (type == "kDOP16") {
         _bvhRepresentation = type;
-        _meshFactory = &ConvertMeshToFCL< fcl::KDOP<16> >;
+        _meshFactory = &ConvertMeshToFCL<fcl::KDOP<16>>;
     } else if (type == "kDOP18") {
         _bvhRepresentation = type;
-        _meshFactory = &ConvertMeshToFCL< fcl::KDOP<18> >;
+        _meshFactory = &ConvertMeshToFCL<fcl::KDOP<18>>;
     } else if (type == "kDOP24") {
         _bvhRepresentation = type;
-        _meshFactory = &ConvertMeshToFCL< fcl::KDOP<24> >;
+        _meshFactory = &ConvertMeshToFCL<fcl::KDOP<24>>;
     } else if (type == "kIOS") {
         _bvhRepresentation = type;
         _meshFactory = &ConvertMeshToFCL<fcl::kIOS>;
@@ -403,10 +403,6 @@ CollisionObjectPtr FCLSpace::GetLinkBV(const KinBody::Link &link) {
     return GetLinkBV(*link.GetParent(), link.GetIndex());
 }
 
-CollisionObjectPtr FCLSpace::GetLinkBV(const OpenRAVE::KinBody::Link &link) {
-    return GetLinkBV(*link.GetParent(), link.GetIndex());
-}
-
 CollisionObjectPtr FCLSpace::GetLinkBV(const OpenRAVE::KinBody &body, int index) {
     FCLKinBodyInfoPtr& pinfo = GetInfo(body);
     if( !!pinfo ) {
@@ -470,7 +466,7 @@ void FCLSpace::_AddGeomInfoToBVHSubmodel(fcl::BVHModel<fcl::OBB>& model, OpenRAV
 
 TransformCollisionPair FCLSpace::_CreateTransformCollisionPairFromOBB(fcl::OBB const &bv) {
     CollisionGeometryPtr pbvGeom = std::make_shared<fcl::Box>(bv.extent[0]*2.0f, bv.extent[1]*2.0f, bv.extent[2]*2.0f);
-    CollisionObjectPtr pbvColl = boost::make_shared<fcl::CollisionObject>(pbvGeom);
+    CollisionObjectPtr pbvColl = std::make_shared<fcl::CollisionObject>(pbvGeom);
     fcl::Quaternion3f fclBvRot;
     fclBvRot.fromAxes(bv.axis);
     Vector bvRotation = ConvertQuaternion(fclBvRot);
@@ -479,55 +475,26 @@ TransformCollisionPair FCLSpace::_CreateTransformCollisionPairFromOBB(fcl::OBB c
     return std::make_pair(Transform(bvRotation, bvTranslation), pbvColl);
 }
 
-CollisionGeometryPtr FCLSpace::_CreateFCLGeomFromGeometryInfo(const KinBody::GeometryInfo &info)
+std::shared_ptr<fcl::CollisionGeometry> FCLSpace::_CreateFCLGeomFromGeometryInfo(const KinBody::GeometryInfo &info)
 {
     switch(info._type) {
-
     case OpenRAVE::GT_None:
-        return CollisionGeometryPtr();
-
+        return nullptr;
     case OpenRAVE::GT_CalibrationBoard:
     case OpenRAVE::GT_Box:
-        return std::make_shared<fcl::Box>(info._vGeomData.x*2.0f,info._vGeomData.y*2.0f,info._vGeomData.z*2.0f);
-
+        return std::make_unique<fcl::Box>(info._vGeomData.x*2.0f,info._vGeomData.y*2.0f,info._vGeomData.z*2.0f);
     case OpenRAVE::GT_Sphere:
-        return std::make_shared<fcl::Sphere>(info._vGeomData.x);
-
+        return std::make_unique<fcl::Sphere>(info._vGeomData.x);
     case OpenRAVE::GT_Cylinder:
-        return std::make_shared<fcl::Cylinder>(info._vGeomData.x, info._vGeomData.y);
-
+        return std::make_unique<fcl::Cylinder>(info._vGeomData.x, info._vGeomData.y);
     case OpenRAVE::GT_Container:
     case OpenRAVE::GT_TriMesh:
     case OpenRAVE::GT_Cage:
-    {
-        const OpenRAVE::TriMesh& mesh = info._meshcollision;
-        if (mesh.vertices.empty() || mesh.indices.empty()) {
-            return CollisionGeometryPtr();
-        }
-
-        OPENRAVE_ASSERT_OP(mesh.indices.size() % 3, ==, 0);
-        size_t const num_points = mesh.vertices.size();
-        size_t const num_triangles = mesh.indices.size() / 3;
-
-        std::vector<fcl::Vec3f> fcl_points(num_points);
-        for (size_t ipoint = 0; ipoint < num_points; ++ipoint) {
-            Vector v = mesh.vertices[ipoint];
-            fcl_points[ipoint] = fcl::Vec3f(v.x, v.y, v.z);
-        }
-
-        std::vector<fcl::Triangle> fcl_triangles(num_triangles);
-        for (size_t itri = 0; itri < num_triangles; ++itri) {
-            int const *const tri_indices = &mesh.indices[3 * itri];
-            fcl_triangles[itri] = fcl::Triangle(tri_indices[0], tri_indices[1], tri_indices[2]);
-        }
-
-        return _meshFactory(fcl_points, fcl_triangles);
-    }
-
+        return ConvertMeshToFCL<fcl::OBB>(info._meshcollision); // Currently we always use OBB
     default:
         RAVELOG_WARN(str(boost::format("FCL doesn't support geom type %d")%info._type));
-        return CollisionGeometryPtr();
     }
+    return nullptr;
 }
 
 void FCLSpace::_Synchronize(FCLSpace::FCLKinBodyInfo& info, const OpenRAVE::KinBody& body)
@@ -707,7 +674,7 @@ void FCLSpace::FCLKinBodyInfo::LinkInfo::Reset() {
     }
     linkBV.second.reset();
 
-    for (const auto& geompair : vgeoms) {
+    for (auto& geompair : vgeoms) {
         geompair.second->setUserData(nullptr);
         geompair.second.reset();
     }

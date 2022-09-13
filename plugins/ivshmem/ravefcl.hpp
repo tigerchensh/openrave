@@ -47,11 +47,11 @@ inline fcl::AABB ConvertAABB(const OpenRAVE::AABB& aabb) {
 }
 
 template <typename T>
-inline std::unique_ptr<fcl::CollisionGeometry> ConvertMeshToFCL(const OpenRAVE::TriMesh& mesh) {
+inline std::shared_ptr<fcl::CollisionGeometry> ConvertMeshToFCL(const OpenRAVE::TriMesh& mesh) {
     OPENRAVE_ASSERT_OP(mesh.indices.size() % 3, ==, 0);
     const auto& vertices = mesh.vertices;
     const auto& indices = mesh.indices;
-    auto model = std::make_unique<fcl::BVHModel<T>>();
+    auto model = std::make_shared<fcl::BVHModel<T>>();
     model->beginModel();
     for (size_t i = 0; i < indices.size(); i += 3) {
         model->addTriangle(

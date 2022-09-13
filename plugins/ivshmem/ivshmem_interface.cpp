@@ -27,9 +27,6 @@
 #include "ravefcl.hpp"
 #include "ivshmem_interface.hpp"
 
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 //using FCLObjectTypes = std::variant<
 //    fcl::Box,
 //    fcl::Sphere,
@@ -47,28 +44,28 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 //    fcl::BVHModel<fcl::kIOS>,
 //>;
 
-inline std::unique_ptr<fcl::CollisionGeometry> ConstructFCLMesh(const OpenRAVE::KinBody::GeometryInfo& info) {
+inline std::shared_ptr<fcl::CollisionGeometry> ConstructFCLMesh(const OpenRAVE::KinBody::GeometryInfo& info) {
     switch (info._type) {
     case OpenRAVE::GT_None: {
         break;
     }
     case OpenRAVE::GT_CalibrationBoard:
     case OpenRAVE::GT_Box: {
-        return std::make_unique<fcl::Box>(info._vGeomData.x * 2.f, info._vGeomData.y * 2.f, info._vGeomData.z * 2.f);
+        return std::make_shared<fcl::Box>(info._vGeomData.x * 2.f, info._vGeomData.y * 2.f, info._vGeomData.z * 2.f);
         break;
     }
     case OpenRAVE::GT_Sphere: {
-        return std::make_unique<fcl::Sphere>(info._vGeomData.x);
+        return std::make_shared<fcl::Sphere>(info._vGeomData.x);
         break;
     }
     case OpenRAVE::GT_Cylinder: {
-        return std::make_unique<fcl::Cylinder>(info._vGeomData.x, info._vGeomData.y);
+        return std::make_shared<fcl::Cylinder>(info._vGeomData.x, info._vGeomData.y);
         break;
     }
     case OpenRAVE::GT_Container:
     case OpenRAVE::GT_TriMesh:
     case OpenRAVE::GT_Cage: {
-        return ConvertMeshToFCL(info._meshcollision);
+        return ConvertMeshToFCL<fcl::OBB>(info._meshcollision);
         break;
     }
     default: {
@@ -121,7 +118,7 @@ bool IVShMemInterface::InitKinBody(OpenRAVE::KinBodyPtr pbody) {
         const auto& geometries = linkptr->GetGeometries();
         for (const auto& geometryptr : geometries) {
             const auto& info = geometryptr->GetInfo();
-            std::unique_ptr<fcl::CollisionGeometry> collisionGeometry = ConstructFCLMesh(info);
+            auto collisionGeometry = ConstructFCLMesh(info);
             if (!collisionGeometry) {
                 continue;
             }
