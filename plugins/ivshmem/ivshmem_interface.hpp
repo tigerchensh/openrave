@@ -26,7 +26,7 @@
 
 class IVShMemInterface final : public OpenRAVE::CollisionCheckerBase {
 public:
-    static constexpr char* ModuleName = "ivshmem";
+    static constexpr const char* ModuleName = "ivshmem";
 
     IVShMemInterface(OpenRAVE::EnvironmentBasePtr penv);
     IVShMemInterface(const IVShMemInterface&) = delete;

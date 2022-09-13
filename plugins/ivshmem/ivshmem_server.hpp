@@ -27,6 +27,7 @@ class IVShMemServer final {
 public:
     IVShMemServer();
     IVShMemServer(const IVShMemServer&) = delete;
+    IVShMemServer(IVShMemServer&&) noexcept = default;
     ~IVShMemServer();
 
     /// \brief Main thread loop function. The loop should be run in the class containing this class.
