@@ -15,14 +15,25 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdarg>
+#include <memory>
+
+#include <fcl/collision.h>
+#include <fcl/distance.h>
+#include <fcl/BVH/BVH_model.h>
+#include <fcl/broadphase/broadphase.h>
+#include <fcl/shape/geometric_shapes.h>
 
 #include "ivshmem_interface.hpp"
 
 IVShMemInterface::IVShMemInterface(OpenRAVE::EnvironmentBasePtr penv)
     : OpenRAVE::CollisionCheckerBase(penv)
-    {}
+    , _ivshmem_server()
+    , _ivshmem_server_thread(&IVShMemServer::Thread, this->_ivshmem_server) {}
 
-IVShMemInterface::~IVShMemInterface() {}
+IVShMemInterface::~IVShMemInterface() {
+    _ivshmem_server.Stop();
+    _ivshmem_server_thread.join();
+}
 
 bool IVShMemInterface::SetCollisionOptions(int collisionoptions) {
     _options = collisionoptions;
@@ -49,6 +60,42 @@ bool IVShMemInterface::InitEnvironment() {
 void IVShMemInterface::DestroyEnvironment() {}
 
 bool IVShMemInterface::InitKinBody(OpenRAVE::KinBodyPtr pbody) {
+    const auto& links = pbody->GetLinks();
+    for (const auto& linkptr : links) {
+        fcl::AABB enclosingBV;
+        const auto& geometries = linkptr->GetGeometries();
+        for (const auto& geometryptr : geometries) {
+            const auto& info = geometryptr->GetInfo();
+            std::unique_ptr<fcl::CollisionGeometry> collisionGeometry;
+            switch (info._type) {
+            case OpenRAVE::GT_None: {
+                break;
+            }
+            case OpenRAVE::GT_CalibrationBoard:
+            case OpenRAVE::GT_Box: {
+                collisionGeometry = std::make_unique<fcl::Box>(info._vGeomData.x * 2.f, info._vGeomData.y * 2.f, info._vGeomData.z * 2.f);
+                break;
+            }
+            case OpenRAVE::GT_Sphere: {
+                collisionGeometry = std::make_unique<fcl::Sphere>(info._vGeomData.x);
+                break;
+            }
+            case OpenRAVE::GT_Cylinder: {
+                collisionGeometry = std::make_unique<fcl::Cylinder>(info._vGeomData.x, info._vGeomData.y);
+                break;
+            }
+            case OpenRAVE::GT_Container:
+            case OpenRAVE::GT_TriMesh:
+            case OpenRAVE::GT_Cage: {
+                collisionGeometry = std::make_unique<
+                break;
+            }
+            default: {
+                RAVELOG_WARN("Unsupported geometry type.");
+            }
+            }
+        }
+    }
 }
 
 void IVShMemInterface::RemoveKinBody(OpenRAVE::KinBodyPtr pbody) {

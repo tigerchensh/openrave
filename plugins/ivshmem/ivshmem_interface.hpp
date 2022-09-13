@@ -18,8 +18,11 @@
 #define OPENRAVE_IVSHMEM_INTERFACE_HPP
 
 #include <string>
+#include <thread>
 
 #include <openrave/openrave.h>
+
+#include "ivshmem_server.hpp"
 
 class IVShMemInterface final : public OpenRAVE::CollisionCheckerBase {
 public:
@@ -110,6 +113,8 @@ public:
 
 private:
     int _options; // CollisionOptions enum
+    IVShMemServer _ivshmem_server;
+    std::thread _ivshmem_server_thread;
 };
 
 #endif // OPENRAVE_IVSHMEM_INTERFACE_HPP
