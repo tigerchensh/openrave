@@ -177,7 +177,6 @@ bool FCLSpace::HasNamedGeometry(const KinBody &body, const std::string& groupnam
     return false;
 }
 
-
 void FCLSpace::SetGeometryGroup(const std::string& groupname)
 {
     // should always do this since bodies can have different geometry groups set

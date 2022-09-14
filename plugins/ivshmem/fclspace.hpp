@@ -15,12 +15,6 @@
 
 namespace fclrave {
 
-//typedef KinBody::LinkConstPtr LinkConstPtr;
-//typedef std::pair<LinkConstPtr, LinkConstPtr> LinkPair;
-//typedef boost::weak_ptr<const KinBody> KinBodyConstWeakPtr;
-//typedef KinBody::GeometryConstPtr GeometryConstPtr;
-typedef boost::weak_ptr<OpenRAVE::KinBody::Geometry> GeometryWeakPtr;
-
 // Warning : this is the only place where we use std::shared_ptr (for compatibility with fcl)
 typedef std::shared_ptr<fcl::CollisionGeometry> CollisionGeometryPtr;
 typedef std::shared_ptr<fcl::CollisionObject> CollisionObjectPtr;
@@ -32,11 +26,11 @@ using MeshFactory = std::function<std::shared_ptr<fcl::CollisionGeometry>(const 
 /// \brief fcl spaces manages the individual collision objects and sets up callbacks to track their changes.
 ///
 /// It does not know or manage the broadphase manager
-class FCLSpace : public boost::enable_shared_from_this<FCLSpace>
+class FCLSpace
 {
 public:
     // corresponds to FCLUserData
-    class FCLKinBodyInfo : public boost::enable_shared_from_this<FCLKinBodyInfo>, public OpenRAVE::UserData
+    class FCLKinBodyInfo : public OpenRAVE::UserData
     {
     public:
         class FCLGeometryInfo
@@ -50,7 +44,7 @@ public:
 
             OpenRAVE::KinBody::GeometryPtr GetGeometry();
 
-            GeometryWeakPtr _pgeom;
+            boost::weak_ptr<OpenRAVE::KinBody::Geometry> _pgeom;
             std::string bodylinkgeomname; // for debugging purposes
             bool bFromKinBodyGeometry; ///< if true, then from kinbodygeometry. Otherwise from standalone object that does not have any KinBody associations
         };
@@ -199,4 +193,4 @@ private:
 
 }
 
-#endif
+#endif // OPENRAVE_FCL_SPACE
