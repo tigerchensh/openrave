@@ -8,3 +8,6 @@ msvc_soqt/
 src/models/
 
 myrelpath.pyc
+build/
+3rdparty/
+sympy/
